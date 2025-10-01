@@ -168,24 +168,44 @@ a{ color:var(--link) }
     border-bottom: 2px solid rgba(255,212,0,.3);
 }
 
-/* Zebra striping */
+/* Zebra striping - works with or without tbody */
+/* Target data rows specifically, excluding header */
+.standings-table .jsTableRow:nth-of-type(odd),
 .standings-table tbody tr:nth-child(odd),
+#driver_table .jsTableRow:nth-of-type(odd),
 #driver_table tbody tr:nth-child(odd),
+#team_table .jsTableRow:nth-of-type(odd),
 #team_table tbody tr:nth-child(odd) { 
     background: rgba(255,255,255,.02); 
 }
 
+.standings-table .jsTableRow:nth-of-type(even),
 .standings-table tbody tr:nth-child(even),
+#driver_table .jsTableRow:nth-of-type(even),
 #driver_table tbody tr:nth-child(even),
+#team_table .jsTableRow:nth-of-type(even),
 #team_table tbody tr:nth-child(even) { 
     background: rgba(255,255,255,.04); 
 }
 
-/* Hover effects */
+/* Header row should not have zebra striping */
+.standings-table tr:first-child,
+#driver_table tr:first-child,
+#team_table tr:first-child,
+.standings-table .jsTableHdr,
+#driver_table .jsTableHdr,
+#team_table .jsTableHdr { 
+    background: linear-gradient(180deg, rgba(239,42,16,.35), rgba(255,212,0,.15)) !important;
+}
+
+/* Hover effects - works with or without tbody */
+.standings-table .jsTableRow:hover,
 .standings-table tbody tr:hover,
+#driver_table .jsTableRow:hover,
 #driver_table tbody tr:hover,
+#team_table .jsTableRow:hover,
 #team_table tbody tr:hover { 
-    background: rgba(255,212,0,.09); 
+    background: rgba(255,212,0,.09) !important; 
 }
 .standings-table td.wrap a{ color:#fff; text-decoration:underline; text-underline-offset:2px }
 :root[data-theme="light"] .standings-table td.wrap a{ color:#0d1014 }
@@ -257,23 +277,32 @@ table#team_table td:nth-child(2) a:hover {
 :root[data-theme="light"] #team_table td:nth-child(3) {
     color: var(--text) !important;
 }
-/* Light mode styles */
+/* Light mode styles - works with or without tbody */
+:root[data-theme="light"] .standings-table .jsTableRow:nth-of-type(odd),
 :root[data-theme="light"] .standings-table tbody tr:nth-child(odd),
+:root[data-theme="light"] #driver_table .jsTableRow:nth-of-type(odd),
 :root[data-theme="light"] #driver_table tbody tr:nth-child(odd),
+:root[data-theme="light"] #team_table .jsTableRow:nth-of-type(odd),
 :root[data-theme="light"] #team_table tbody tr:nth-child(odd) { 
     background: rgba(0,0,0,.02); 
 }
 
+:root[data-theme="light"] .standings-table .jsTableRow:nth-of-type(even),
 :root[data-theme="light"] .standings-table tbody tr:nth-child(even),
+:root[data-theme="light"] #driver_table .jsTableRow:nth-of-type(even),
 :root[data-theme="light"] #driver_table tbody tr:nth-child(even),
+:root[data-theme="light"] #team_table .jsTableRow:nth-of-type(even),
 :root[data-theme="light"] #team_table tbody tr:nth-child(even) { 
     background: rgba(0,0,0,.04); 
 }
 
+:root[data-theme="light"] .standings-table .jsTableRow:hover,
 :root[data-theme="light"] .standings-table tbody tr:hover,
+:root[data-theme="light"] #driver_table .jsTableRow:hover,
 :root[data-theme="light"] #driver_table tbody tr:hover,
+:root[data-theme="light"] #team_table .jsTableRow:hover,
 :root[data-theme="light"] #team_table tbody tr:hover { 
-    background: rgba(239,42,16,.08); 
+    background: rgba(239,42,16,.08) !important; 
 }
 :root[data-theme="light"] .standings-table td.wrap a{ color:#0d1014 }
 .standings-table th.sortable{ cursor:pointer }
