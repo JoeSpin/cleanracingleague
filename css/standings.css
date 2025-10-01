@@ -1,0 +1,84 @@
+/* Responsive standings styles */
+:root{
+  --bg: rgba(255,255,255,0.96);
+  --muted: #666;
+  --accent: #111;
+  --accent-2: #0077cc;
+  --row-alt: rgba(0,0,0,0.02);
+}
+body{font-family: Arial, Helvetica, sans-serif;background:transparent;color:#111;margin:0;padding:16px}
+.standings-main{max-width:1100px;margin:0 auto}
+.standings-section h2{font-size:1.25rem;margin:0 0 8px;color:var(--accent)}
+.table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:8px;background:var(--bg);padding:8px}
+
+/* Target the injected tables by id so Python-replaced HTML is styled predictably */
+table#driver_table,
+table#team_table,
+.standings-table {
+  /* let the table size to its contents; the surrounding .table-wrap will provide scrolling */
+  width: auto;
+  max-width: 100%;
+  border-collapse:collapse;
+  font-size:0.95rem;
+  table-layout: auto;
+  min-width: 700px; /* desktop baseline before mobile media query overrides */
+}
+
+table#driver_table th, table#team_table th,
+table#driver_table td, table#team_table td,
+.standings-table th, .standings-table td{
+  padding:10px 12px;
+  border-bottom:1px solid rgba(0,0,0,0.06);
+  text-align:left;
+  vertical-align:middle;
+}
+
+/* Header styling */
+table#driver_table thead th, table#team_table thead th,
+.standings-table thead th{
+  background:rgba(0,0,0,0.03);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.02em;
+  color:var(--accent);
+}
+
+/* column sizing helpers (position/points) */
+table#driver_table td:first-child, table#team_table td:first-child{ width:48px; text-align:center }
+table#driver_table th:first-child, table#team_table th:first-child{ width:48px; text-align:center }
+
+/* zebra rows for readability */
+table#driver_table tbody tr:nth-child(even) td,
+table#team_table tbody tr:nth-child(even) td{ background: var(--row-alt) }
+
+/* team name / driver name emphasis */
+table#driver_table td:nth-child(3), table#team_table td:nth-child(3){ font-weight:600; color:var(--accent) }
+
+/* right aligned numeric cells (points, etc.) */
+table#driver_table td.right, table#team_table td.right, .standings-table td.right{ text-align:right }
+
+/* Mobile: keep table layout but allow horizontal scrolling on narrow screens */
+@media (max-width:700px){
+  .table-wrap{padding:6px; -webkit-overflow-scrolling:touch}
+
+  /* keep real table layout so the wrapper can scroll horizontally */
+  table#driver_table, table#team_table, .standings-table{
+    display: table;
+    width: auto;
+    max-width: 100%;
+    min-width: 600px; /* allow horizontal scroll on small devices */
+    font-size:0.9rem;
+    table-layout: auto;
+  }
+
+  /* reduce padding for small screens */
+  table#driver_table th, table#team_table th,
+  table#driver_table td, table#team_table td{
+    padding:8px 10px;
+  }
+}
+
+/* small tweaks */
+table#driver_table tr:nth-child(even) td{background:transparent}
+table#team_table tr:nth-child(even) td{background:transparent}
+.standings-table td.right{ text-align:right }

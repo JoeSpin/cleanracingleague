@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clean Racing League</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            min-height: 100vh;
+            min-width: 100vw;
+            box-sizing: border-box;
+            position: relative;
+            font-family: Arial, sans-serif;
+            /* landing page: prevent page scroll */
+            overflow: hidden;
+        }
+        .background {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            /* use the real background image and make it cover responsively */
+            background-image: url('img/bg.png');
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            /* avoid fixed attachment which can cause issues on mobile */
+            background-attachment: scroll;
+            z-index: 1;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2;
+        }
+        .content {
+            position: relative;
+            z-index: 3;
+            /* landing page fixed viewport container */
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-top: 12px;
+            padding-bottom: 12px;
+            box-sizing: border-box;
+        }
+        /* main logo: fluid, square, and responsive */
+        .main-logo {
+            width: clamp(160px, 55vw, 520px);
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: clamp(12px, 4vh, 28px);
+            background: transparent;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .main-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .card-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        .logo-card {
+            width: clamp(120px, 22vw, 280px);
+            aspect-ratio: 1 / 1;
+            padding: 8px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+            text-decoration: none;
+            color: inherit;
+            box-sizing: border-box;
+        }
+        .logo-card:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .logo-placeholder {
+            /* fill the card area and stay square via the card's aspect-ratio */
+            width: 100%;
+            height: 100%;
+            background: #ccc;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: #333;
+            overflow: hidden;
+        }
+        .logo-placeholder img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        @media (max-width: 900px) {
+            .main-logo { width: clamp(140px, 70vw, 420px); }
+            .card-row { gap: 16px; }
+            .logo-card { width: clamp(120px, 36vw, 220px); }
+        }
+        /* compact layout for narrow screens: scale elements to fit viewport height
+           and keep landing page no-scroll behavior */
+        @media (max-width: 692px) {
+            body { overflow: hidden; }
+            /* push content to start so main logo sits at top */
+            .content {
+                /* use dynamic viewport height for better mobile behavior */
+                height: 100dvh;
+                padding-top: 8px;
+                padding-bottom: 8px;
+                gap: 8px;
+                justify-content: flex-start;
+                align-items: center;
+                box-sizing: border-box;
+            }
+            /* responsive logo height that scales with vw and dvh */
+            :root { --logo-h: clamp(120px, 28vw + 8dvh, 40dvh); }
+            .main-logo {
+                /* use the same value for width and height so the logo scales proportionally */
+                width: var(--logo-h);
+                height: var(--logo-h);
+                margin-bottom: 6px;
+                flex: 0 0 auto;
+            }
+            /* card-row takes the remaining vertical space under the logo */
+            .card-row {
+                gap: 8px;
+                flex-direction: column;
+                width: 100%;
+                align-items: center;
+                display: flex;
+                /* compute remaining height: total viewport minus logo and padding/gaps */
+                height: calc(100dvh - var(--logo-h) - 32px);
+                min-height: 0; /* allow children to shrink */
+            }
+            /* each card fills an equal portion of the remaining card-row height */
+            .logo-card {
+                width: clamp(120px, 80vw, 320px);
+                padding: 6px;
+                aspect-ratio: auto;
+                flex: 1 1 0;
+                min-height: 0; /* important for flex children to avoid overflow */
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-sizing: border-box;
+            }
+            .logo-placeholder {
+                width: 100%;
+                height: 100%;
+            }
+            /* disable hover transform on very small screens to avoid layout shifts */
+            .logo-card:hover { transform: none; box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+        }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="overlay"></div>
+    <div class="content">
+        <div class="main-logo">
+            <img src="img/crllogo.png" alt="CRL">
+        </div>
+        <div class="card-row">
+            <a href="arca/index.html" class="logo-card" target="_blank">
+                <div class="logo-placeholder"><img src="img/crlarca.png" alt="CRL Arca"></div>
+            </a>
+            <a href="trucks/index.html" class="logo-card" target="_blank">
+                <div class="logo-placeholder"><img src="img/crltruck.png" alt="CRL Truck"></div>
+            </a>
+            <a href="elite/index.html" class="logo-card" target="_blank">
+                <div class="logo-placeholder"><img src="img/crlelite.png" alt="CRL Elite"></div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
