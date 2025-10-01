@@ -128,30 +128,153 @@ a{ color:var(--link) }
 .sponsor-placeholder img{ max-width:120px; max-height:90px; display:block; margin:6px auto; object-fit:contain }
 .sponsor-caption{ color:var(--muted) }
 .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch }
-.standings-table{ width:100%; border-collapse:separate; border-spacing:0; min-width:700px; }
-.standings-table th, .standings-table td{ padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.06); color:var(--text) }
-.standings-table th{
-    position:sticky; top:0; z-index:5; text-align:center; font-family:"Teko"; letter-spacing:.7px; font-size:1.05rem;
+
+/* Target both .standings-table class and common fetched table IDs */
+.standings-table, 
+#driver_table, 
+#team_table { 
+    width:100%; 
+    border-collapse:separate; 
+    border-spacing:0; 
+    min-width:700px; 
+}
+
+.standings-table th, .standings-table td,
+#driver_table th, #driver_table td,
+#team_table th, #team_table td { 
+    padding:10px 8px; 
+    border-bottom:1px solid rgba(255,255,255,.06); 
+    color:var(--text); 
+}
+
+/* Header styling */
+.standings-table th,
+.standings-table thead th,
+#driver_table th,
+#driver_table thead th,
+#team_table th,
+#team_table thead th {
+    position:sticky; 
+    top:0; 
+    z-index:5; 
+    text-align:center; 
+    font-family:"Teko"; 
+    letter-spacing:.7px; 
+    font-size:1.05rem;
+    font-weight: 700;
+    text-transform: uppercase;
     background: linear-gradient(180deg, rgba(239,42,16,.35), rgba(255,212,0,.15));
     backdrop-filter: blur(4px);
+    border-bottom: 2px solid rgba(255,212,0,.3);
 }
-.standings-table tbody tr:nth-child(odd){ background: rgba(255,255,255,.02) }
-.standings-table tbody tr:nth-child(even){ background: rgba(255,255,255,.03) }
-.standings-table tbody tr:hover{ background: rgba(255,212,0,.09) }
+
+/* Zebra striping */
+.standings-table tbody tr:nth-child(odd),
+#driver_table tbody tr:nth-child(odd),
+#team_table tbody tr:nth-child(odd) { 
+    background: rgba(255,255,255,.02); 
+}
+
+.standings-table tbody tr:nth-child(even),
+#driver_table tbody tr:nth-child(even),
+#team_table tbody tr:nth-child(even) { 
+    background: rgba(255,255,255,.04); 
+}
+
+/* Hover effects */
+.standings-table tbody tr:hover,
+#driver_table tbody tr:hover,
+#team_table tbody tr:hover { 
+    background: rgba(255,212,0,.09); 
+}
 .standings-table td.wrap a{ color:#fff; text-decoration:underline; text-underline-offset:2px }
 :root[data-theme="light"] .standings-table td.wrap a{ color:#0d1014 }
+/* Cell alignment and styling */
+.standings-table td.ctr,
+#driver_table td.ctr,
+#team_table td.ctr { 
+    text-align: center; 
+}
+
+.standings-table td.rgt,
+#driver_table td.rgt,
+#team_table td.rgt { 
+    text-align: right; 
+    font-weight: 600;
+    color: var(--text); /* Override standings.css accent color */
+}
+
+.standings-table td.wrap,
+#driver_table td.wrap,
+#team_table td.wrap { 
+    text-align: left; 
+}
+
 /* Ensure injected legacy tables from standings.css get dark mode text color for name cells and links */
-table#driver_table td:nth-child(3),
-table#team_table td:nth-child(3){ color:var(--text); }
-table#driver_table td:nth-child(3) a,
-table#team_table td:nth-child(3) a{ color:var(--text); }
-:root[data-theme="light"] table#driver_table td:nth-child(3),
-:root[data-theme="light"] table#team_table td:nth-child(3){ color:#0d1014; }
-:root[data-theme="light"] table#driver_table td:nth-child(3) a,
-:root[data-theme="light"] table#team_table td:nth-child(3) a{ color:#0d1014; }
-:root[data-theme="light"] .standings-table tbody tr:nth-child(odd){ background: rgba(0,0,0,.02) }
-:root[data-theme="light"] .standings-table tbody tr:nth-child(even){ background: rgba(0,0,0,.03) }
-:root[data-theme="light"] .standings-table tbody tr:hover{ background: rgba(239,42,16,.08) }
+.standings-table td.wrap a,
+#driver_table td.wrap a,
+#team_table td.wrap a,
+table#driver_table td:nth-child(2) a,
+table#team_table td:nth-child(2) a { 
+    color: var(--crl-gold); 
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.standings-table td.wrap a:hover,
+#driver_table td.wrap a:hover,
+#team_table td.wrap a:hover,
+table#driver_table td:nth-child(2) a:hover,
+table#team_table td:nth-child(2) a:hover { 
+    color: var(--crl-gold-2); 
+    text-decoration: underline;
+}
+
+:root[data-theme="light"] .standings-table td.wrap a,
+:root[data-theme="light"] #driver_table td.wrap a,
+:root[data-theme="light"] #team_table td.wrap a,
+:root[data-theme="light"] table#driver_table td:nth-child(2) a,
+:root[data-theme="light"] table#team_table td:nth-child(2) a { 
+    color: var(--crl-red); 
+}
+
+:root[data-theme="light"] .standings-table td.wrap a:hover,
+:root[data-theme="light"] #driver_table td.wrap a:hover,
+:root[data-theme="light"] #team_table td.wrap a:hover,
+:root[data-theme="light"] table#driver_table td:nth-child(2) a:hover,
+:root[data-theme="light"] table#team_table td:nth-child(2) a:hover { 
+    color: #b11b0d; 
+}
+
+/* Override standings.css color rule for 3rd column (points column) */
+#driver_table td:nth-child(3),
+#team_table td:nth-child(3) {
+    color: var(--text) !important;
+    font-weight: 600;
+}
+
+:root[data-theme="light"] #driver_table td:nth-child(3),
+:root[data-theme="light"] #team_table td:nth-child(3) {
+    color: var(--text) !important;
+}
+/* Light mode styles */
+:root[data-theme="light"] .standings-table tbody tr:nth-child(odd),
+:root[data-theme="light"] #driver_table tbody tr:nth-child(odd),
+:root[data-theme="light"] #team_table tbody tr:nth-child(odd) { 
+    background: rgba(0,0,0,.02); 
+}
+
+:root[data-theme="light"] .standings-table tbody tr:nth-child(even),
+:root[data-theme="light"] #driver_table tbody tr:nth-child(even),
+:root[data-theme="light"] #team_table tbody tr:nth-child(even) { 
+    background: rgba(0,0,0,.04); 
+}
+
+:root[data-theme="light"] .standings-table tbody tr:hover,
+:root[data-theme="light"] #driver_table tbody tr:hover,
+:root[data-theme="light"] #team_table tbody tr:hover { 
+    background: rgba(239,42,16,.08); 
+}
 :root[data-theme="light"] .standings-table td.wrap a{ color:#0d1014 }
 .standings-table th.sortable{ cursor:pointer }
 .standings-table th.sortable::after{ content:"\25B2"; opacity:.0; margin-left:8px; font-size:.75em; transition:opacity .12s ease, transform .12s ease }

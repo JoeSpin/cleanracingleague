@@ -110,11 +110,27 @@ def extract_tables(raw_html: str) -> Tuple[Optional[str], Optional[str]]:
     def clean(tbl):
         if tbl is None:
             return None
-        # strip inline styles / bgcolor
+        
+        # strip inline styles / bgcolor and add proper classes
         for tag in tbl.find_all(True):
             for attr in list(tag.attrs):
                 if attr.lower() in {"style", "bgcolor", "width", "height", "cellpadding", "cellspacing"}:
                     del tag.attrs[attr]
+        
+        # Also remove specific table attributes that interfere with styling
+        if tbl.name == "table":
+            for attr in list(tbl.attrs):
+                if attr.lower() in {"cellspacing", "style", "width"}:
+                    del tbl.attrs[attr]
+        
+        # Add proper classes for styling
+        if tbl.name == "table":
+            # Add standings-table class and keep the original ID
+            existing_classes = tbl.get("class", [])
+            if "standings-table" not in existing_classes:
+                existing_classes.append("standings-table")
+            tbl["class"] = existing_classes
+        
         return str(tbl)
     return clean(driver_table), clean(team_table)
 
