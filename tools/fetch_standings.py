@@ -59,7 +59,7 @@ STAMP_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 def replace_block(text: str, name: str, new_inner: str, series_name: str) -> Tuple[str, bool]:
     pattern = re.compile(rf"(<!-- START_{name} -->)(.*?)(<!-- END_{name} -->)", re.DOTALL)
-    ts = dt.datetime.utcnow().strftime(STAMP_FMT)
+    ts = dt.datetime.now(dt.timezone.utc).strftime(STAMP_FMT)
     block = (
         f"<!-- UPDATED {ts} UTC series={series_name} marker={name} -->\n"
         f"<div class=\"table-wrap\">\n{new_inner}\n</div>"
