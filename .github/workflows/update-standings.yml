@@ -7,10 +7,14 @@ on:
 
 jobs:
   build-update:
+    permissions:
+      contents: write  # allow pushing updates
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -22,20 +26,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 lxml
 
-      - name: Run standings fetch scripts
+      - name: Run unified standings fetch (real)
+        env:
+          REAL_FETCH: "1"
         run: |
-          if [ -f tools/fetch_standings.py ]; then python tools/fetch_standings.py || exit 1; fi
-          if [ -f tools/fetch_arca_standings.py ]; then python tools/fetch_arca_standings.py || exit 1; fi
-          if [ -f tools/fetch_elite_standings.py ]; then python tools/fetch_elite_standings.py || exit 1; fi
+          python tools/fetch_standings.py
 
       - name: Commit and push changes (if any)
         run: |
           if git diff --quiet; then
             echo "No changes in standings."
-          else
-            git config user.name "Standings Bot"
-            git config user.email "actions@github.com"
-            git add .
-            git commit -m "Auto update standings $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            git push
+            exit 0
           fi
+          git config user.name "Standings Bot"
+          git config user.email "actions@github.com"
+          git add trucks/index.html arca/index.html elite/index.html || true
+          if git diff --cached --quiet; then
+            echo "No staged changes after selective add."
+            exit 0
+          fi
+          git commit -m "Auto update standings $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push
