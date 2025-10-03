@@ -46,6 +46,99 @@
     initNavAndTheme();
   }
 })();
+
+// League Dropdown Navigation
+(function(){
+  function initLeagueDropdown(){
+    var dropdown = document.querySelector('.league-dropdown');
+    var button = document.querySelector('.league-dropdown-button');
+    var menu = document.querySelector('.dropdown-menu');
+    
+    if (!dropdown || !button || !menu) return;
+    
+    function closeDropdown(){
+      dropdown.classList.remove('open');
+      button.setAttribute('aria-expanded', 'false');
+    }
+    
+    function openDropdown(){
+      dropdown.classList.add('open');
+      button.setAttribute('aria-expanded', 'true');
+    }
+    
+    function toggleDropdown(){
+      var isOpen = dropdown.classList.contains('open');
+      isOpen ? closeDropdown() : openDropdown();
+    }
+    
+    // Button click handler
+    button.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      toggleDropdown();
+    });
+    
+    // Click outside to close
+    document.addEventListener('click', function(e){
+      if (!dropdown.contains(e.target)) {
+        closeDropdown();
+      }
+    });
+    
+    // Keyboard navigation
+    button.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleDropdown();
+      } else if (e.key === 'Escape') {
+        closeDropdown();
+      }
+    });
+    
+    // Arrow key navigation within dropdown
+    menu.addEventListener('keydown', function(e){
+      var items = menu.querySelectorAll('.dropdown-item');
+      var currentIndex = Array.from(items).indexOf(document.activeElement);
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        var nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+        items[nextIndex].focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        var prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+        items[prevIndex].focus();
+      } else if (e.key === 'Escape') {
+        closeDropdown();
+        button.focus();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (document.activeElement.classList.contains('dropdown-item')) {
+          document.activeElement.click();
+        }
+      }
+    });
+    
+    // Handle dropdown item clicks
+    menu.addEventListener('click', function(e){
+      var item = e.target.closest('.dropdown-item');
+      if (item && !item.classList.contains('active')) {
+        // Navigate to the selected league
+        var href = item.getAttribute('data-href') || item.href;
+        if (href) {
+          window.location.href = href;
+        }
+      }
+      closeDropdown();
+    });
+  }
+  
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initLeagueDropdown);
+  } else {
+    initLeagueDropdown();
+  }
+})();
 // Table sorting utility (self-invoking)
 (function(){
   function parseCell(text){

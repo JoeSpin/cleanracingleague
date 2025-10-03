@@ -13,7 +13,27 @@
 <body>
 <header>
     <div class="logo-placeholder">
-        <div class="brand"><img src="../img/crlarca.png" alt="CRL ARCA Series"><strong style="font-size:1.05rem;color:var(--text)">CRL ARCA</strong></div>
+        <div class="league-dropdown">
+            <button class="league-dropdown-button" aria-expanded="false" aria-label="Select league">
+                <img src="../img/crlarca.png" alt="CRL ARCA Series">
+                <strong style="font-size:1.05rem;color:var(--text)">CRL ARCA</strong>
+                <span class="dropdown-arrow">▼</span>
+            </button>
+            <div class="dropdown-menu">
+                <a href="../trucks/index.html" class="dropdown-item">
+                    <img src="../img/crltruck.png" alt="CRL Truck Series">
+                    <strong>CRL Trucks</strong>
+                </a>
+                <a href="../elite/index.html" class="dropdown-item">
+                    <img src="../img/crlelite.png" alt="CRL Elite Series">
+                    <strong>CRL Elite</strong>
+                </a>
+                <div class="dropdown-item active">
+                    <img src="../img/crlarca.png" alt="CRL ARCA Series">
+                    <strong>CRL ARCA</strong>
+                </div>
+            </div>
+        </div>
         <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
             <span class="hamburger" aria-hidden="true"></span>
         </button>
