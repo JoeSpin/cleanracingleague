@@ -57,6 +57,101 @@ header, section, footer{
     box-shadow: var(--shadow);
     border: 1px solid rgba(255,255,255,.06);
 }
+
+/* Race Winner Section Styles */
+.race-winner {
+    max-width: 1100px;
+    margin: 18px auto;
+    padding: 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,.06);
+}
+
+.race-winner-content {
+    text-align: center;
+    padding: 10px;
+}
+
+.race-winner-content h3 {
+    margin: 0 0 15px 0;
+    color: var(--crl-gold);
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.winner-info {
+    margin: 15px 0 20px 0;
+}
+
+.winner-name {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.track-info {
+    font-size: 1.2rem;
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.race-date {
+    font-size: 1rem;
+    color: var(--muted);
+    font-style: italic;
+}
+
+.view-results-btn {
+    margin-top: 15px;
+}
+
+.view-results-btn a {
+    display: inline-block;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, var(--crl-red), #d41f0a);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,.1);
+    box-shadow: 0 4px 12px rgba(239,42,16,.3);
+}
+
+.view-results-btn a:hover {
+    background: linear-gradient(135deg, #d41f0a, var(--crl-red));
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(239,42,16,.4);
+}
+
+.view-results-btn a:active {
+    transform: translateY(0);
+}
+
+/* Light theme adjustments */
+:root[data-theme="light"] .race-winner {
+    background: linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.01));
+    border: 1px solid rgba(0,0,0,.08);
+}
+
+:root[data-theme="light"] .view-results-btn a {
+    box-shadow: 0 4px 12px rgba(239,42,16,.2);
+}
+
+:root[data-theme="light"] .view-results-btn a:hover {
+    box-shadow: 0 6px 16px rgba(239,42,16,.3);
+}
 .logo-placeholder{
     position:relative;
     display:flex; align-items:center; justify-content:space-between; gap:14px;
@@ -127,7 +222,47 @@ a{ color:var(--link) }
 }
 .sponsor-placeholder img{ max-width:120px; max-height:90px; display:block; margin:6px auto; object-fit:contain }
 .sponsor-caption{ color:var(--muted) }
-.table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch }
+.table-wrap{ 
+    overflow-x: auto; 
+    overflow-y: hidden;
+    -webkit-overflow-scrolling:touch;
+    border-radius: 8px;
+    background: rgba(255,255,255,.01);
+    border: 1px solid rgba(255,255,255,.06);
+    width: 100%; /* Ensure wrapper takes full available width */
+    box-sizing: border-box; /* Include padding/border in width calculation */
+}
+
+/* Ensure table stretches when container is wider than minimum */
+.table-wrap:not([style*="overflow"]) .standings-table,
+.table-wrap:not([style*="overflow"]) #driver_table,
+.table-wrap:not([style*="overflow"]) #team_table {
+    width: 100% !important;
+    min-width: 100%;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 1200px) {
+    .standings-table, 
+    #driver_table, 
+    #team_table {
+        min-width: 900px; /* Reduce minimum width on smaller screens */
+    }
+    
+    .standings-table th, .standings-table td,
+    #driver_table th, #driver_table td,
+    #team_table th, #team_table td {
+        padding: 10px 6px; /* Matching padding for headers and data on smaller screens */
+        font-size: 0.9rem;
+    }
+    
+    .standings-table th,
+    #driver_table th,
+    #team_table th {
+        font-size: 0.85rem;
+        padding: 10px 6px; /* Ensure headers match data padding exactly */
+    }
+}
 
 /* Target both .standings-table class and common fetched table IDs */
 .standings-table, 
@@ -136,15 +271,141 @@ a{ color:var(--link) }
     width:100%; 
     border-collapse:separate; 
     border-spacing:0; 
-    min-width:700px; 
+    min-width:1100px; /* Wider to accommodate single-line headers */
+    table-layout: auto; /* Use auto layout for flexible column sizing */
+    max-width: 100%; /* Ensure table doesn't exceed container width */
+}
+
+/* When container is wider than min-width, allow table to expand */
+@media (min-width: 1200px) {
+    .standings-table, 
+    #driver_table, 
+    #team_table {
+        table-layout: fixed; /* Use fixed layout on larger screens for better stretching */
+    }
+}
+
+/* Column width specifications for reordered driver table */
+/* New order: Pos, Chg, Driver, Points, Behind, Starts, Wins, Top5, Top10, Laps, Inc */
+
+.standings-table th:nth-child(1), .standings-table td:nth-child(1),  /* Pos */
+#driver_table th:nth-child(1), #driver_table td:nth-child(1),
+#team_table th:nth-child(1), #team_table td:nth-child(1) {
+    width: 50px;
+    min-width: 50px;
+}
+
+.standings-table th:nth-child(2), .standings-table td:nth-child(2),  /* Chg */
+#driver_table th:nth-child(2), #driver_table td:nth-child(2) {
+    width: 60px;
+    min-width: 55px;
+}
+
+.standings-table th:nth-child(3), .standings-table td:nth-child(3),  /* Driver */
+#driver_table th:nth-child(3), #driver_table td:nth-child(3),
+#team_table th:nth-child(3), #team_table td:nth-child(3) {
+    width: auto; /* Allow driver column to flex and use available space */
+    min-width: 140px;
+    max-width: none; /* No maximum width constraint */
+}
+
+.standings-table th:nth-child(4), .standings-table td:nth-child(4),  /* Points */
+#driver_table th:nth-child(4), #driver_table td:nth-child(4) {
+    width: 80px;
+    min-width: 75px;
+}
+
+.standings-table th:nth-child(5), .standings-table td:nth-child(5),  /* Behind */
+#driver_table th:nth-child(5), #driver_table td:nth-child(5) {
+    width: 80px;
+    min-width: 75px;
+}
+
+.standings-table th:nth-child(4), .standings-table td:nth-child(4),  /* Beh Next */
+.standings-table th:nth-child(5), .standings-table td:nth-child(5),  /* Beh Lead */
+#driver_table th:nth-child(4), #driver_table td:nth-child(4),
+#driver_table th:nth-child(5), #driver_table td:nth-child(5),
+#team_table th:nth-child(4), #team_table td:nth-child(4),
+#team_table th:nth-child(5), #team_table td:nth-child(5) {
+    width: 80px;
+    min-width: 75px;
+}
+
+.standings-table th:nth-child(6), .standings-table td:nth-child(6),  /* Starts */
+.standings-table th:nth-child(7), .standings-table td:nth-child(7),  /* Chg */
+.standings-table th:nth-child(8), .standings-table td:nth-child(8),  /* Wins */
+.standings-table th:nth-child(9), .standings-table td:nth-child(9),  /* T-5 */
+.standings-table th:nth-child(10), .standings-table td:nth-child(10), /* T-10 */
+.standings-table th:nth-child(13), .standings-table td:nth-child(13), /* Incs */
+.standings-table th:nth-child(14), .standings-table td:nth-child(14), /* Poles */
+#driver_table th:nth-child(2), #driver_table td:nth-child(2),  /* Chg - position 2 */
+#driver_table th:nth-child(6), #driver_table td:nth-child(6),  /* Starts - position 6 */
+#driver_table th:nth-child(7), #driver_table td:nth-child(7),  /* Wins - position 7 */
+#driver_table th:nth-child(8), #driver_table td:nth-child(8),  /* Top 5 - position 8 */
+#driver_table th:nth-child(9), #driver_table td:nth-child(9),  /* Top 10 - position 9 */
+#driver_table th:nth-child(11), #driver_table td:nth-child(11), /* Inc - position 11 */
+#team_table th:nth-child(6), #team_table td:nth-child(6),
+#team_table th:nth-child(7), #team_table td:nth-child(7),
+#team_table th:nth-child(8), #team_table td:nth-child(8),
+#team_table th:nth-child(9), #team_table td:nth-child(9),
+#team_table th:nth-child(10), #team_table td:nth-child(10),
+#team_table th:nth-child(13), #team_table td:nth-child(13),
+#team_table th:nth-child(14), #team_table td:nth-child(14) {
+    width: 65px;
+    min-width: 60px;
+}
+
+.standings-table th:nth-child(11), .standings-table td:nth-child(11), /* Bns Pts */
+#driver_table th:nth-child(11), #driver_table td:nth-child(11),
+#team_table th:nth-child(11), #team_table td:nth-child(11) {
+    width: 80px;
+    min-width: 75px;
+}
+
+.standings-table th:nth-child(12), .standings-table td:nth-child(12), /* Laps */
+#driver_table th:nth-child(12), #driver_table td:nth-child(12),
+#team_table th:nth-child(12), #team_table td:nth-child(12) {
+    width: 70px;
+    min-width: 65px;
+}
+
+.standings-table th:nth-child(15), .standings-table td:nth-child(15), /* Team */
+#driver_table th:nth-child(15), #driver_table td:nth-child(15),
+#team_table th:nth-child(15), #team_table td:nth-child(15) {
+    width: auto;
+    min-width: 120px;
 }
 
 .standings-table th, .standings-table td,
 #driver_table th, #driver_table td,
 #team_table th, #team_table td { 
-    padding:10px 8px; 
+    padding: 12px 8px !important; 
     border-bottom:1px solid rgba(255,255,255,.06); 
-    color:var(--text); 
+    color:var(--text);
+    vertical-align: middle !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Allow wrapping for driver and team name columns */
+.standings-table th:nth-child(2), .standings-table td:nth-child(2),
+.standings-table th:nth-child(15), .standings-table td:nth-child(15),
+#driver_table th:nth-child(2), #driver_table td:nth-child(2),
+#driver_table th:nth-child(15), #driver_table td:nth-child(15),
+#team_table th:nth-child(2), #team_table td:nth-child(2),
+#team_table th:nth-child(15), #team_table td:nth-child(15) {
+    white-space: normal;
+    overflow: visible;
+}
+
+/* Ensure all other headers have consistent text handling */
+.standings-table th:not(:nth-child(2)):not(:nth-child(15)),
+#driver_table th:not(:nth-child(2)):not(:nth-child(15)),
+#team_table th:not(:nth-child(2)):not(:nth-child(15)) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Header styling */
@@ -157,15 +418,27 @@ a{ color:var(--link) }
     position:sticky; 
     top:0; 
     z-index:5; 
-    text-align:center; 
-    font-family:"Teko"; 
+    text-align:center !important; 
+    font-family:"Teko" !important; 
     letter-spacing:.7px; 
-    font-size:1.05rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    background: linear-gradient(180deg, rgba(239,42,16,.35), rgba(255,212,0,.15));
+    font-size:0.95rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    background: linear-gradient(180deg, rgba(239,42,16,.35), rgba(255,212,0,.15)) !important;
     backdrop-filter: blur(4px);
-    border-bottom: 2px solid rgba(255,212,0,.3);
+    border-bottom: 2px solid rgba(255,212,0,.3) !important;
+    line-height: 1.2;
+    padding: 12px 8px !important; /* Match data cell padding exactly */
+    vertical-align: middle !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Keep all headers centered for consistency */
+.standings-table th,
+#driver_table th,
+#team_table th {
+    text-align: center; /* All headers centered */
 }
 
 /* Zebra striping - works with or without tbody */
@@ -209,43 +482,53 @@ a{ color:var(--link) }
 }
 .standings-table td.wrap a{ color:#fff; text-decoration:underline; text-underline-offset:2px }
 :root[data-theme="light"] .standings-table td.wrap a{ color:#0d1014 }
-/* Cell alignment and styling */
-.standings-table td.ctr,
-#driver_table td.ctr,
-#team_table td.ctr { 
-    text-align: center; 
+/* Cell alignment and styling - CENTER ALL DATA */
+.standings-table td,
+#driver_table td,
+#team_table td { 
+    text-align: center !important; /* Override all alignment classes */
+    font-weight: 500 !important;
 }
 
+/* Apply monospace font only to numeric columns (not driver/team names) */
+.standings-table td.ctr,
+.standings-table td.rgt,
+#driver_table td.ctr,
+#driver_table td.rgt,
+#team_table td.ctr,
+#team_table td.rgt { 
+    font-family: 'Courier New', Monaco, monospace; /* Monospace for numbers only */
+}
+
+/* Keep numeric columns with slightly bolder weight */
 .standings-table td.rgt,
 #driver_table td.rgt,
 #team_table td.rgt { 
-    text-align: right; 
+    text-align: center !important; /* Center instead of right */
     font-weight: 600;
     color: var(--text); /* Override standings.css accent color */
-}
-
-.standings-table td.wrap,
-#driver_table td.wrap,
-#team_table td.wrap { 
-    text-align: left; 
+    letter-spacing: 0.5px;
 }
 
 /* Ensure injected legacy tables from standings.css get dark mode text color for name cells and links */
 .standings-table td.wrap a,
 #driver_table td.wrap a,
 #team_table td.wrap a,
-table#driver_table td:nth-child(2) a,
-table#team_table td:nth-child(2) a { 
+.standings-table a,
+#driver_table a,
+#team_table a { 
     color: var(--crl-gold); 
     text-decoration: none;
     font-weight: 600;
+    display: inline-block; /* Better centering for links */
 }
 
 .standings-table td.wrap a:hover,
 #driver_table td.wrap a:hover,
 #team_table td.wrap a:hover,
-table#driver_table td:nth-child(2) a:hover,
-table#team_table td:nth-child(2) a:hover { 
+.standings-table a:hover,
+#driver_table a:hover,
+#team_table a:hover { 
     color: var(--crl-gold-2); 
     text-decoration: underline;
 }
@@ -253,16 +536,18 @@ table#team_table td:nth-child(2) a:hover {
 :root[data-theme="light"] .standings-table td.wrap a,
 :root[data-theme="light"] #driver_table td.wrap a,
 :root[data-theme="light"] #team_table td.wrap a,
-:root[data-theme="light"] table#driver_table td:nth-child(2) a,
-:root[data-theme="light"] table#team_table td:nth-child(2) a { 
+:root[data-theme="light"] .standings-table a,
+:root[data-theme="light"] #driver_table a,
+:root[data-theme="light"] #team_table a { 
     color: var(--crl-red); 
 }
 
 :root[data-theme="light"] .standings-table td.wrap a:hover,
 :root[data-theme="light"] #driver_table td.wrap a:hover,
 :root[data-theme="light"] #team_table td.wrap a:hover,
-:root[data-theme="light"] table#driver_table td:nth-child(2) a:hover,
-:root[data-theme="light"] table#team_table td:nth-child(2) a:hover { 
+:root[data-theme="light"] .standings-table a:hover,
+:root[data-theme="light"] #driver_table a:hover,
+:root[data-theme="light"] #team_table a:hover { 
     color: #b11b0d; 
 }
 
