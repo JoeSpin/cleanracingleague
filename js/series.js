@@ -57,22 +57,60 @@
   function makeSortable(table){
       var headers = table.querySelectorAll('th');
       headers.forEach(function(th, idx){
+          // Add sortable class to all headers
           th.classList.add('sortable');
-          th.addEventListener('click', function(){
-              var rows = Array.prototype.slice.call(table.querySelectorAll('tr')).filter(function(r){ return r.querySelectorAll('td').length>0 });
-              var currentDir = th.classList.contains('asc') ? 'asc' : (th.classList.contains('desc') ? 'desc' : null);
-              headers.forEach(function(h){ h.classList.remove('asc','desc') });
-              var dir = currentDir === 'asc' ? 'desc' : 'asc';
-              th.classList.add(dir);
-              rows.sort(function(a,b){
-                  var ac = a.cells[idx] ? a.cells[idx].innerText.trim() : '';
-                  var bc = b.cells[idx] ? b.cells[idx].innerText.trim() : '';
-                  var av = parseCell(ac); var bv = parseCell(bc);
-                  if(typeof av === 'number' && typeof bv === 'number') return (av - bv) * (dir === 'asc' ? 1 : -1);
-                  av = String(av); bv = String(bv);
-                  return av < bv ? (dir === 'asc' ? -1 : 1) : (av > bv ? (dir === 'asc' ? 1 : -1) : 0);
+          
+          // Remove any existing click listeners and add our enhanced one
+          th.addEventListener('click', function(e){
+              e.preventDefault();
+              
+              // Get all data rows (skip header row)
+              var rows = Array.prototype.slice.call(table.querySelectorAll('tr')).filter(function(r){ 
+                  return r.querySelectorAll('td').length > 0 && !r.classList.contains('jsTableHdr');
               });
-              rows.forEach(function(r){ r.parentNode.appendChild(r); });
+              
+              // Determine current sort direction
+              var currentDir = th.classList.contains('asc') ? 'asc' : (th.classList.contains('desc') ? 'desc' : null);
+              
+              // Clear all sort classes from all headers
+              headers.forEach(function(h){ 
+                  h.classList.remove('asc','desc');
+              });
+              
+              // Set new direction (toggle between asc and desc)
+              var newDir = currentDir === 'asc' ? 'desc' : 'asc';
+              th.classList.add(newDir);
+              
+              // Sort rows based on the clicked column
+              rows.sort(function(a,b){
+                  var cellA = a.cells[idx];
+                  var cellB = b.cells[idx];
+                  
+                  if (!cellA || !cellB) return 0;
+                  
+                  var textA = cellA.innerText || cellA.textContent || '';
+                  var textB = cellB.innerText || cellB.textContent || '';
+                  
+                  var valueA = parseCell(textA);
+                  var valueB = parseCell(textB);
+                  
+                  // Handle numeric sorting
+                  if(typeof valueA === 'number' && typeof valueB === 'number') {
+                      return (valueA - valueB) * (newDir === 'asc' ? 1 : -1);
+                  }
+                  
+                  // Handle string sorting
+                  valueA = String(valueA).toLowerCase();
+                  valueB = String(valueB).toLowerCase();
+                  
+                  if (valueA < valueB) return newDir === 'asc' ? -1 : 1;
+                  if (valueA > valueB) return newDir === 'asc' ? 1 : -1;
+                  return 0;
+              });
+              
+              // Re-append sorted rows to the table
+              var tbody = table.querySelector('tbody') || table;
+              rows.forEach(function(row){ tbody.appendChild(row); });
           });
       });
   }
