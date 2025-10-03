@@ -58,99 +58,148 @@ header, section, footer{
     border: 1px solid rgba(255,255,255,.06);
 }
 
-/* Race Winner Section Styles */
+/* Race Winner Section Styles - Higher specificity for proper styling */
 .race-winner {
-    max-width: 1100px;
-    margin: 18px auto;
-    padding: 16px;
-    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    border: 1px solid rgba(255,255,255,.06);
+    display: block !important;
+    width: 100% !important;
+    max-width: 1100px !important;
+    margin: 18px auto !important;
+    padding: 20px !important;
+    background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow) !important;
+    border: 1px solid rgba(255,255,255,.1) !important;
+    font-family: "League Spartan", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
+    position: relative !important;
+    z-index: 1 !important;
 }
 
-.race-winner-content {
-    text-align: center;
-    padding: 10px;
+.race-winner .race-winner-content {
+    text-align: center !important;
+    padding: 15px !important;
 }
 
-.race-winner-content h3 {
-    margin: 0 0 15px 0;
-    color: var(--crl-gold);
-    font-size: 1.4rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.race-winner .race-winner-content h3 {
+    margin: 0 0 20px 0 !important;
+    color: var(--crl-gold) !important;
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    font-family: "League Spartan", sans-serif !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,.3) !important;
+    position: relative !important;
 }
 
-.winner-info {
-    margin: 15px 0 20px 0;
+.race-winner .race-winner-content h3::before {
+    content: "🏆" !important;
+    margin-right: 8px !important;
+    font-size: 1.2em !important;
 }
 
-.winner-name {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.race-winner .winner-info {
+    margin: 20px 0 25px 0 !important;
 }
 
-.track-info {
-    font-size: 1.2rem;
-    color: var(--muted);
-    margin-bottom: 5px;
-    font-weight: 500;
+.race-winner .winner-name {
+    font-size: 2rem !important;
+    font-weight: 800 !important;
+    color: var(--text) !important;
+    margin-bottom: 10px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-family: "League Spartan", sans-serif !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,.2) !important;
+    background: linear-gradient(45deg, var(--text), var(--crl-gold), var(--text)) !important;
+    background-size: 200% 200% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    animation: shimmer 3s ease-in-out infinite !important;
 }
 
-.race-date {
-    font-size: 1rem;
-    color: var(--muted);
-    font-style: italic;
+@keyframes shimmer {
+    0%, 100% { background-position: 0% 50% !important; }
+    50% { background-position: 100% 50% !important; }
 }
 
-.view-results-btn {
-    margin-top: 15px;
+.race-winner .track-info {
+    font-size: 1.3rem !important;
+    color: var(--muted) !important;
+    margin-bottom: 8px !important;
+    font-weight: 600 !important;
+    font-family: "League Spartan", sans-serif !important;
 }
 
-.view-results-btn a {
-    display: inline-block;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, var(--crl-red), #d41f0a);
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255,255,255,.1);
-    box-shadow: 0 4px 12px rgba(239,42,16,.3);
+.race-winner .race-date {
+    font-size: 1.1rem !important;
+    color: var(--muted) !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    font-family: "League Spartan", sans-serif !important;
 }
 
-.view-results-btn a:hover {
-    background: linear-gradient(135deg, #d41f0a, var(--crl-red));
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(239,42,16,.4);
+.race-winner .view-results-btn {
+    margin-top: 20px !important;
 }
 
-.view-results-btn a:active {
-    transform: translateY(0);
+/* Enhanced Button Styling */
+.race-winner .view-results-btn a,
+.race-winner .view-results-btn button,
+.race-winner .results-button {
+    display: inline-block !important;
+    padding: 15px 30px !important;
+    background: linear-gradient(135deg, var(--crl-red), #c41e0a) !important;
+    color: white !important;
+    text-decoration: none !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    transition: all 0.3s ease !important;
+    cursor: pointer !important;
+    box-shadow: 0 6px 20px rgba(239,42,16,.4) !important;
+    font-family: "League Spartan", sans-serif !important;
+    position: relative !important;
+    overflow: hidden !important;
+    min-width: 200px !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
 }
 
-/* Light theme adjustments */
+.race-winner .view-results-btn a:hover,
+.race-winner .view-results-btn button:hover,
+.race-winner .results-button:hover {
+    background: linear-gradient(135deg, #c41e0a, var(--crl-red)) !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 25px rgba(239,42,16,.6) !important;
+}
+
+.race-winner .view-results-btn a:active,
+.race-winner .view-results-btn button:active,
+.race-winner .results-button:active {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 15px rgba(239,42,16,.5) !important;
+}
+
+/* Light theme adjustments for race winner */
 :root[data-theme="light"] .race-winner {
-    background: linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.01));
-    border: 1px solid rgba(0,0,0,.08);
+    background: linear-gradient(180deg, rgba(0,0,0,.03), rgba(0,0,0,.01)) !important;
+    border: 1px solid rgba(0,0,0,.1) !important;
 }
 
-:root[data-theme="light"] .view-results-btn a {
-    box-shadow: 0 4px 12px rgba(239,42,16,.2);
+:root[data-theme="light"] .race-winner .view-results-btn a,
+:root[data-theme="light"] .race-winner .view-results-btn button,
+:root[data-theme="light"] .race-winner .results-button {
+    box-shadow: 0 6px 20px rgba(239,42,16,.3) !important;
 }
 
-:root[data-theme="light"] .view-results-btn a:hover {
-    box-shadow: 0 6px 16px rgba(239,42,16,.3);
+:root[data-theme="light"] .race-winner .view-results-btn a:hover,
+:root[data-theme="light"] .race-winner .view-results-btn button:hover,
+:root[data-theme="light"] .race-winner .results-button:hover {
+    box-shadow: 0 8px 25px rgba(239,42,16,.4) !important;
 }
 .logo-placeholder{
     position:relative;

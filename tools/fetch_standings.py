@@ -382,7 +382,7 @@ def build_series(series_key: str, cfg: dict, root: pathlib.Path, dry_run: bool) 
             {f'<div class="race-date">{race_date}</div>' if race_date else ''}
         </div>
         <div class="view-results-btn">
-            <a href="{cfg["race_results_url"]}" target="_blank" rel="noopener">View Full Results</a>
+            <a href="{cfg["race_results_url"]}" target="_blank" rel="noopener" class="results-button">🏁 View Full Results</a>
         </div>
     </div>
 </div>'''
