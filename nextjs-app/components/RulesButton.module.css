@@ -1,0 +1,33 @@
+.rulesButtonContainer {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.rulesButton {
+  display: inline-block;
+  font-family: "Teko", system-ui;
+  letter-spacing: .6px;
+  text-decoration: none;
+  color: #fff;
+  background: var(--crl-red);
+  padding: 12px 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 4px 10px rgba(239,42,16,.35);
+  transition: all .18s ease;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.rulesButton:hover {
+  background: var(--crl-gold);
+  color: #101113;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255,212,0,.45);
+}
+
+.rulesButton:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(0,0,0,.4);
+}

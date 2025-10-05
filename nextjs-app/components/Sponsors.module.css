@@ -1,0 +1,86 @@
+/* Sponsors component styles */
+.sponsors {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  margin: 24px auto 0;
+  align-items: start;
+  max-width: 800px;
+  justify-content: center;
+}
+
+.sponsorPlaceholder {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,.06);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+
+.sponsorPlaceholder:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.4);
+  border-color: rgba(255,212,0,.2);
+}
+
+.sponsorLink {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sponsorLink img {
+  width: 100%;
+  height: auto;
+  max-height: 120px;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: transform 0.2s ease;
+}
+
+.sponsorLink:hover img {
+  transform: scale(1.05);
+}
+
+.sponsorCaption {
+  margin-top: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+}
+
+/* Light theme adjustments */
+:root[data-theme="light"] .sponsorPlaceholder {
+  background: var(--surface);
+  border-color: rgba(0,0,0,.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+}
+
+:root[data-theme="light"] .sponsorPlaceholder:hover {
+  box-shadow: 0 8px 20px rgba(0,0,0,.15);
+  border-color: rgba(239,42,16,.2);
+}
+
+/* Tablet responsive */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .sponsors {
+    max-width: 700px;
+    gap: 28px;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .sponsors {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    max-width: 400px;
+  }
+  
+  .sponsorPlaceholder {
+    padding: 16px;
+  }
+}
