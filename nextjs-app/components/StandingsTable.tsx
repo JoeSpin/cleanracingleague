@@ -25,6 +25,7 @@ interface Driver {
   top10: number
   laps: number
   incidents: number
+  profileUrl?: string
 }
 
 interface Team {
@@ -39,6 +40,7 @@ interface Team {
   top10: number
   laps: number
   incidents: number
+  profileUrl?: string
 }
 
 interface StandingsResponse {
@@ -232,7 +234,20 @@ export default function StandingsTable({ league }: StandingsTableProps) {
                 <tr key={driver.name}>
                   <td>{driver.position}</td>
                   <td>{driver.change}</td>
-                  <td>{driver.name}</td>
+                  <td>
+                    {driver.profileUrl ? (
+                      <a 
+                        href={driver.profileUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--crl-gold)', textDecoration: 'none' }}
+                      >
+                        {driver.name}
+                      </a>
+                    ) : (
+                      driver.name
+                    )}
+                  </td>
                   <td>{driver.points}</td>
                   <td>{driver.behindLeader}</td>
                   <td>{driver.starts}</td>
@@ -267,7 +282,20 @@ export default function StandingsTable({ league }: StandingsTableProps) {
                 <tr key={team.name}>
                   <td>{team.position}</td>
                   <td>{team.change}</td>
-                  <td>{team.name}</td>
+                  <td>
+                    {team.profileUrl ? (
+                      <a 
+                        href={team.profileUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--crl-gold)', textDecoration: 'none' }}
+                      >
+                        {team.name}
+                      </a>
+                    ) : (
+                      team.name
+                    )}
+                  </td>
                   <td>{team.points}</td>
                   <td>{team.behindLeader}</td>
                   <td>{team.starts}</td>

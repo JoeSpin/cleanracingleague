@@ -12,6 +12,7 @@ interface StandingsRow {
   top10: number
   laps: number
   incidents: number
+  profileUrl?: string
 }
 
 interface StandingsData {
@@ -88,10 +89,19 @@ function parseStandingsTables(html: string, seriesId: string): { drivers: Standi
         // Extract cells
         const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi
         const cells: string[] = []
+        const cellUrls: (string | undefined)[] = []
         let cellMatch
         
         while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
-          const cellText = cellMatch[1]
+          const cellContent = cellMatch[1]
+          
+          // Extract URL if present (look for <a> tags)
+          const linkMatch = cellContent.match(/<a[^>]+href=["']([^"']+)["'][^>]*>/i)
+          const url = linkMatch ? `https://www.simracerhub.com${linkMatch[1]}` : undefined
+          cellUrls.push(url)
+          
+          // Extract text content
+          const cellText = cellContent
             .replace(/<[^>]*>/g, '') // Remove HTML tags
             .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
             .trim()
@@ -151,6 +161,14 @@ function parseStandingsTables(html: string, seriesId: string): { drivers: Standi
             behindLeader = cells[14] || '-'                // behlead (column 14)
           }
           
+          // Get profile URL from the appropriate column
+          let profileUrl: string | undefined
+          if (isDriverTable) {
+            profileUrl = seriesId === '10554' ? cellUrls[1] : cellUrls[2] // Driver name is in column 1 for trucks, 2 for elite/arca
+          } else {
+            profileUrl = cellUrls[2] // Team name is always in column 2
+          }
+
           const row: StandingsRow = {
             position,
             change,
@@ -162,7 +180,8 @@ function parseStandingsTables(html: string, seriesId: string): { drivers: Standi
             top5,
             top10,
             laps,
-            incidents
+            incidents,
+            profileUrl
           }
           
           if (isDriverTable) {
