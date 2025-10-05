@@ -7,11 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next export",
-    "vercel-build": "next build"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "export": "next export"
   },
   "dependencies": {
     "next": "14.0.0",
