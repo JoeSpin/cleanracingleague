@@ -97,7 +97,16 @@ function parseStandingsTables(html: string, seriesId: string): { drivers: Standi
           
           // Extract URL if present (look for <a> tags)
           const linkMatch = cellContent.match(/<a[^>]+href=["']([^"']+)["'][^>]*>/i)
-          const url = linkMatch ? `https://www.simracerhub.com${linkMatch[1]}` : undefined
+          let url: string | undefined
+          if (linkMatch) {
+            const href = linkMatch[1]
+            // Fix URL construction - move slash after .com instead of after .php
+            if (href.includes('profile.php/')) {
+              url = `https://www.simracerhub.com/${href.replace('profile.php/', 'profile.php?member=')}`
+            } else {
+              url = href.startsWith('/') ? `https://www.simracerhub.com${href}` : `https://www.simracerhub.com/${href}`
+            }
+          }
           cellUrls.push(url)
           
           // Extract text content
