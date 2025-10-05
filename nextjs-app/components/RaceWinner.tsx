@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import styles from './RaceWinner.module.css'
 
 interface RaceWinnerProps {
@@ -97,11 +96,16 @@ export default function RaceWinner({ league }: RaceWinnerProps) {
             <div className={styles.trackName}>{raceResult.track}</div>
             <div className={styles.raceDate}>{raceResult.date}</div>
           </div>
-          {raceResult.resultsUrl && (
+          {raceResult.resultsUrl && raceResult.resultsUrl !== '#' && (
             <div className={styles.viewResults}>
-              <Link href={raceResult.resultsUrl} className={styles.resultsButton}>
+              <a 
+                href={raceResult.resultsUrl} 
+                className={styles.resultsButton}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 View Full Results
-              </Link>
+              </a>
             </div>
           )}
         </div>

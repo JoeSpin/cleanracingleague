@@ -19,7 +19,7 @@ const SERIES_CONFIG = {
   },
 }
 
-function parseRaceResults(html: string): RaceResult | null {
+function parseRaceResults(html: string, seriesUrl: string): RaceResult | null {
   try {
     // Parse track name from h3 headers or page content (based on Python logic)
     let track = 'Unknown Track'
@@ -121,7 +121,7 @@ function parseRaceResults(html: string): RaceResult | null {
       winner,
       track,
       date,
-      resultsUrl: '#'
+      resultsUrl: seriesUrl // Use the SimRacerHub URL for the series
     }
   } catch (error) {
     console.error('Error parsing race results:', error)
@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
     }
 
     const html = await response.text()
-    const raceResult = parseRaceResults(html)
+    const raceResult = parseRaceResults(html, config.url)
 
     if (raceResult) {
       return NextResponse.json({
@@ -181,19 +181,19 @@ export async function GET(request: NextRequest) {
         winner: 'John Smith',
         track: 'Charlotte Motor Speedway',
         date: 'October 3, 2025',
-        resultsUrl: '#'
+        resultsUrl: SERIES_CONFIG.trucks.url
       },
       elite: {
         winner: 'Sarah Johnson',
         track: 'Daytona International Speedway',
         date: 'October 2, 2025',
-        resultsUrl: '#'
+        resultsUrl: SERIES_CONFIG.elite.url
       },
       arca: {
         winner: 'Mike Wilson',
         track: 'Talladega Superspeedway',
         date: 'October 1, 2025',
-        resultsUrl: '#'
+        resultsUrl: SERIES_CONFIG.arca.url
       }
     }
 
