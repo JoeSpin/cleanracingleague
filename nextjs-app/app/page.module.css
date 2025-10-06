@@ -146,6 +146,8 @@
     gap: 16px;
     flex-direction: row;
     flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
   }
   
   .logoCard {
@@ -174,12 +176,15 @@
     flex-direction: column;
     gap: 12px;
     width: 100%;
+    align-items: center;
+    justify-content: center;
   }
   
   .logoCard {
     width: clamp(200px, 80vw, 300px);
     height: clamp(120px, 20vw, 160px);
     padding: 8px;
+    margin: 0 auto;
   }
   
   .logoCard:hover {
