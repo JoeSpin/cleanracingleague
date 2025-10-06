@@ -12,8 +12,8 @@ export default function Home() {
           <Image 
             src="/img/crllogo.png" 
             alt="CRL" 
-            width={520}
-            height={520}
+            fill
+            style={{ objectFit: 'contain' }}
             priority
           />
         </div>
@@ -23,8 +23,8 @@ export default function Home() {
               <Image 
                 src="/img/crlarca.png" 
                 alt="CRL ARCA" 
-                width={280}
-                height={280}
+                fill
+                style={{ objectFit: 'contain' }}
               />
             </div>
           </Link>
@@ -33,8 +33,8 @@ export default function Home() {
               <Image 
                 src="/img/crltruck.png" 
                 alt="CRL Trucks" 
-                width={280}
-                height={280}
+                fill
+                style={{ objectFit: 'contain' }}
               />
             </div>
           </Link>
@@ -43,8 +43,8 @@ export default function Home() {
               <Image 
                 src="/img/crlelite.png" 
                 alt="CRL Elite" 
-                width={280}
-                height={280}
+                fill
+                style={{ objectFit: 'contain' }}
               />
             </div>
           </Link>

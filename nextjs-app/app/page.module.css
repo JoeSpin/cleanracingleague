@@ -1,9 +1,10 @@
 /* Home page styles */
 .container {
   position: relative;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100svh; /* Use small viewport height for better mobile support */
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .background {
@@ -12,14 +13,21 @@
   left: 0;
   right: 0;
   bottom: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   background-image: url('/img/bg.png');
   background-position: center center;
   background-repeat: no-repeat;
   background-size: cover;
-  background-attachment: scroll;
+  background-attachment: fixed;
   z-index: 1;
+}
+
+/* Fix background attachment on mobile */
+@media (max-width: 768px) {
+  .background {
+    background-attachment: scroll;
+  }
 }
 
 .overlay {
@@ -35,24 +43,25 @@
 .content {
   position: relative;
   z-index: 3;
-  height: 100vh;
-  width: 100vw;
+  min-height: 100vh;
+  min-height: 100svh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 12px;
-  padding-bottom: 12px;
+  padding: 20px;
   box-sizing: border-box;
 }
 
 .mainLogo {
-  width: clamp(160px, 55vw, 520px);
-  aspect-ratio: 1 / 1;
+  position: relative;
+  width: clamp(200px, 40vw, 480px);
+  height: clamp(200px, 40vw, 480px);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: clamp(12px, 4vh, 28px);
+  margin-bottom: clamp(20px, 5vh, 40px);
   background: transparent;
   padding: 0;
   box-sizing: border-box;
@@ -60,23 +69,25 @@
 
 .cardRow {
   display: flex;
-  gap: 24px;
+  gap: clamp(16px, 3vw, 32px);
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
+  width: 100%;
+  max-width: 1200px;
 }
 
 .logoCard {
-  width: clamp(120px, 22vw, 280px);
-  aspect-ratio: 1 / 1;
-  padding: 8px;
+  width: clamp(180px, 25vw, 280px);
+  height: clamp(180px, 25vw, 280px);
+  padding: 12px;
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s;
+  transition: all 0.3s ease;
   text-decoration: none;
   color: inherit;
   box-sizing: border-box;
@@ -88,6 +99,7 @@
 }
 
 .logoPlaceholder {
+  position: relative;
   width: 100%;
   height: 100%;
   background: #ccc;
@@ -100,68 +112,78 @@
   overflow: hidden;
 }
 
-/* Mobile responsive styles */
-@media (max-width: 900px) {
+/* Tablet and small desktop */
+@media (max-width: 1024px) {
   .mainLogo {
-    width: clamp(140px, 70vw, 420px);
+    width: clamp(180px, 35vw, 400px);
+    height: clamp(180px, 35vw, 400px);
+  }
+  
+  .cardRow {
+    gap: clamp(12px, 2.5vw, 24px);
+  }
+  
+  .logoCard {
+    width: clamp(160px, 28vw, 240px);
+    height: clamp(160px, 28vw, 240px);
+  }
+}
+
+/* Mobile landscape and small tablets */
+@media (max-width: 768px) {
+  .content {
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .mainLogo {
+    width: clamp(150px, 30vw, 300px);
+    height: clamp(150px, 30vw, 300px);
+    margin-bottom: 20px;
   }
   
   .cardRow {
     gap: 16px;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
   
   .logoCard {
-    width: clamp(120px, 36vw, 220px);
+    width: clamp(140px, 40vw, 200px);
+    height: clamp(140px, 40vw, 200px);
+    padding: 8px;
   }
 }
 
-@media (max-width: 692px) {
+/* Mobile portrait */
+@media (max-width: 480px) {
   .content {
-    height: 100dvh;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    gap: 8px;
-    justify-content: flex-start;
-    align-items: center;
-    box-sizing: border-box;
+    padding: 12px;
+    justify-content: space-evenly;
+    min-height: 100vh;
+    min-height: 100svh;
   }
   
   .mainLogo {
-    width: clamp(120px, 28vw + 8dvh, 40dvh);
-    height: clamp(120px, 28vw + 8dvh, 40dvh);
-    margin-bottom: 6px;
-    flex: 0 0 auto;
+    width: clamp(120px, 50vw, 250px);
+    height: clamp(120px, 50vw, 250px);
+    margin-bottom: 16px;
   }
   
   .cardRow {
-    gap: 8px;
     flex-direction: column;
+    gap: 12px;
     width: 100%;
-    align-items: center;
-    display: flex;
-    height: calc(100dvh - clamp(120px, 28vw + 8dvh, 40dvh) - 32px);
-    min-height: 0;
   }
   
   .logoCard {
-    width: clamp(120px, 80vw, 320px);
-    padding: 6px;
-    aspect-ratio: auto;
-    flex: 1 1 0;
-    min-height: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-  }
-  
-  .logoPlaceholder {
-    width: 100%;
-    height: 100%;
+    width: clamp(200px, 80vw, 300px);
+    height: clamp(120px, 20vw, 160px);
+    padding: 8px;
   }
   
   .logoCard:hover {
-    transform: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   }
 }
