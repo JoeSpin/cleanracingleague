@@ -143,12 +143,14 @@
 /* Mobile responsive */
 @media (max-width: 768px) {
   .raceWinner {
-    margin: 16px;
+    margin: 16px auto;
     padding: 16px;
+    width: calc(100% - 32px);
   }
   
   .raceWinnerContent {
     padding: 10px;
+    text-align: center;
   }
   
   .raceWinnerContent h3 {
@@ -168,6 +170,41 @@
     padding: 12px 24px;
     font-size: 1rem;
     min-width: 180px;
+  }
+}
+
+/* Extra small mobile screens */
+@media (max-width: 480px) {
+  .raceWinner {
+    margin: 12px auto;
+    padding: 12px;
+    width: calc(100% - 24px);
+  }
+  
+  .raceWinnerContent {
+    padding: 8px;
+  }
+  
+  .winnerInfo {
+    align-items: center;
+    text-align: center;
+  }
+  
+  .winnerDetails {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .viewResults {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .resultsButton {
+    width: 100%;
+    max-width: 250px;
+    margin: 0 auto;
+    display: block;
   }
 }
 
