@@ -58,26 +58,34 @@ export default function AdminDashboard() {
     const file = event.target.files?.[0]
     if (!file) return
 
+    console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type)
+
     const formData = new FormData()
     formData.append('image', file)
     formData.append('series', activeTab)
 
     try {
+      console.log('Sending upload request for series:', activeTab)
       const response = await fetch('/api/admin/schedule/upload', {
         method: 'POST',
         body: formData,
       })
 
+      console.log('Upload response status:', response.status)
+
       if (response.ok) {
         const data = await response.json()
+        console.log('Upload success, response:', data)
         setScheduleImage(data.imagePath)
         alert('Schedule image updated successfully!')
       } else {
-        alert('Failed to upload image')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Upload failed:', response.status, errorData)
+        alert(`Failed to upload image: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error uploading schedule image:', error)
-      alert('Error uploading image')
+      alert(`Error uploading image: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
