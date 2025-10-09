@@ -5,6 +5,7 @@ import RaceWinner from '@/components/RaceWinner'
 import Sponsors from '@/components/Sponsors'
 import PlayoffBanners from '@/components/PlayoffBanners'
 import RulesButton from '@/components/RulesButton'
+import ScheduleImage from '@/components/ScheduleImage'
 
 export const metadata: Metadata = {
   title: 'Clean Racing League - Trucks Division',
@@ -24,18 +25,7 @@ export default function TrucksPage() {
       
       <section id="schedule" className="container">
         <h2>Schedule</h2>
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <img 
-            src="/img/crltrucksschedule.png" 
-            alt="Trucks Schedule" 
-            style={{ 
-              maxWidth: '100%', 
-              height: 'auto',
-              borderRadius: 'var(--radius)',
-              boxShadow: 'var(--shadow)'
-            }}
-          />
-        </div>
+        <ScheduleImage series="trucks" />
       </section>
       
       <PlayoffBanners league="trucks" />

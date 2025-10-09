@@ -24,40 +24,61 @@ function parseRaceResults(html: string, seriesUrl: string): RaceResult | null {
     // Parse track name from h3 headers or page content (based on Python logic)
     let track = 'Unknown Track'
     
-    // First try h3 headers
-    const h3Match = html.match(/<h3[^>]*>([^<]*(?:speedway|raceway|superspeedway|road|circuit)[^<]*)<\/h3>/i)
+    // First try h3 headers - look for any text containing track-related keywords
+    const h3Match = html.match(/<h3[^>]*>([^<]*(?:speedway|raceway|superspeedway|road|circuit|motorplex|park|international|motor|track)[^<]*)<\/h3>/i)
     if (h3Match) {
       track = h3Match[1].trim().replace(/\s+/g, ' ')
     } else {
-      // Look for common track name patterns in the text
-      const trackPatterns = [
-        /HOMESTEAD MIAMI SPEEDWAY/i,
-        /KENTUCKY SPEEDWAY/i,
-        /DAYTONA INTERNATIONAL SPEEDWAY/i,
-        /TALLADEGA SUPERSPEEDWAY/i,
-        /PHOENIX RACEWAY/i,
-        /ATLANTA MOTOR SPEEDWAY/i,
-        /LAS VEGAS MOTOR SPEEDWAY/i,
-        /AUTO CLUB SPEEDWAY/i,
-        /POCONO RACEWAY/i,
-        /MICHIGAN INTERNATIONAL SPEEDWAY/i,
-        /CHARLOTTE MOTOR SPEEDWAY/i,
-        /TEXAS MOTOR SPEEDWAY/i,
-        /KANSAS SPEEDWAY/i,
-        /CHICAGO STREET COURSE/i,
-        /NEW HAMPSHIRE MOTOR SPEEDWAY/i,
-        /WATKINS GLEN INTERNATIONAL/i,
-        /ROAD AMERICA/i,
-        /RICHMOND RACEWAY/i,
-        /BRISTOL MOTOR SPEEDWAY/i,
-        /MARTINSVILLE SPEEDWAY/i
-      ]
-      
-      for (const pattern of trackPatterns) {
-        const match = html.match(pattern)
-        if (match) {
-          track = match[0].toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
-          break
+      // Try h2 headers as well
+      const h2Match = html.match(/<h2[^>]*>([^<]*(?:speedway|raceway|superspeedway|road|circuit|motorplex|park|international|motor|track)[^<]*)<\/h2>/i)
+      if (h2Match) {
+        track = h2Match[1].trim().replace(/\s+/g, ' ')
+      } else {
+        // Look for track names in page title or anywhere in content
+        const titleMatch = html.match(/<title[^>]*>([^<]*(?:speedway|raceway|superspeedway|road|circuit|motorplex|park|international|motor|track)[^<]*)<\/title>/i)
+        if (titleMatch) {
+          track = titleMatch[1].trim().replace(/\s+/g, ' ')
+        } else {
+          // Look for any text that looks like a track name (contains common track keywords)
+          const trackKeywords = [
+            /([A-Za-z\s]+(?:speedway|raceway|superspeedway|road course|circuit|motorplex|park)[A-Za-z\s]*)/gi,
+            /([A-Za-z\s]+(?:international|motor|track)[A-Za-z\s]*(?:speedway|raceway|superspeedway|road|circuit))/gi,
+            // Common track patterns
+            /HOMESTEAD[^<]*SPEEDWAY/i,
+            /KENTUCKY[^<]*SPEEDWAY/i,
+            /DAYTONA[^<]*SPEEDWAY/i,
+            /TALLADEGA[^<]*SPEEDWAY/i,
+            /PHOENIX[^<]*RACEWAY/i,
+            /ATLANTA[^<]*SPEEDWAY/i,
+            /LAS VEGAS[^<]*SPEEDWAY/i,
+            /AUTO CLUB[^<]*SPEEDWAY/i,
+            /POCONO[^<]*RACEWAY/i,
+            /MICHIGAN[^<]*SPEEDWAY/i,
+            /CHARLOTTE[^<]*SPEEDWAY/i,
+            /TEXAS[^<]*SPEEDWAY/i,
+            /KANSAS[^<]*SPEEDWAY/i,
+            /CHICAGO[^<]*COURSE/i,
+            /NEW HAMPSHIRE[^<]*SPEEDWAY/i,
+            /WATKINS GLEN[^<]*INTERNATIONAL/i,
+            /ROAD AMERICA/i,
+            /RICHMOND[^<]*RACEWAY/i,
+            /BRISTOL[^<]*SPEEDWAY/i,
+            /MARTINSVILLE[^<]*SPEEDWAY/i,
+            // Add more flexible patterns for other tracks
+            /[A-Z][a-z]+\s*[A-Z][a-z]*\s*(?:Speedway|Raceway|Circuit|International|Motor|Park)/i
+          ]
+          
+          for (const pattern of trackKeywords) {
+            const matches = html.match(pattern)
+            if (matches) {
+              track = matches[0].trim().replace(/\s+/g, ' ')
+              // Clean up track name
+              track = track.replace(/^\W+|\W+$/g, '') // Remove leading/trailing non-word chars
+              if (track.length > 3) {
+                break
+              }
+            }
+          }
         }
       }
     }
@@ -76,26 +97,48 @@ function parseRaceResults(html: string, seriesUrl: string): RaceResult | null {
       
       while ((rowMatch = rowRegex.exec(tableContent)) !== null) {
         const rowContent = rowMatch[1]
+        
+        // Skip header rows
+        if (rowContent.includes('<th')) {
+          continue
+        }
+        
         const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi
         const cells = []
         let cellMatch
         
         while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
-          const cellText = cellMatch[1].replace(/<[^>]*>/g, '').trim()
+          const cellText = cellMatch[1].replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
           cells.push(cellText)
         }
         
-        // Check if first cell is position "1"
-        if (cells.length >= 3 && cells[0] === '1') {
-          // Look for driver name in cells (usually 3rd column or first non-numeric cell after position)
-          for (let i = 2; i < cells.length; i++) {
-            const cell = cells[i]
-            if (cell && cell.length > 3 && !cell.match(/^\d+$/) && !cell.match(/^[\d.]+$/)) {
-              winner = cell
-              break
+        // Check if first cell is position "1" or "1st"
+        if (cells.length >= 2 && (cells[0] === '1' || cells[0] === '1st')) {
+          // Look for driver name in cells - try different common positions
+          const potentialNameCells = [1, 2, 3] // Driver name could be in columns 1, 2, or 3
+          
+          for (const cellIndex of potentialNameCells) {
+            if (cellIndex < cells.length) {
+              const cell = cells[cellIndex]
+              // Check if this looks like a driver name (not just numbers, not empty, reasonable length)
+              if (cell && 
+                  cell.length > 2 && 
+                  cell.length < 50 &&
+                  !cell.match(/^\d+$/) && 
+                  !cell.match(/^[\d.]+$/) &&
+                  !cell.match(/^[+\-]?\d+$/) &&
+                  !cell.match(/^\d{1,2}:\d{2}:\d{2}/) && // Not a time
+                  cell.toLowerCase() !== 'dnf' &&
+                  cell.toLowerCase() !== 'dns') {
+                winner = cell.trim()
+                break
+              }
             }
           }
-          break
+          
+          if (winner !== 'Unknown Driver') {
+            break
+          }
         }
       }
       
@@ -111,11 +154,28 @@ function parseRaceResults(html: string, seriesUrl: string): RaceResult | null {
       day: 'numeric'
     })
     
-    // Look for date patterns like "Sep 29, 2025" or "OCT 1, 2025"
-    const dateMatch = html.match(/([A-Z]{3}\s+\d{1,2},\s+\d{4})/i)
-    if (dateMatch) {
-      date = dateMatch[1]
+    // Look for various date patterns
+    const datePatterns = [
+      /([A-Z]{3}\s+\d{1,2},\s+\d{4})/i, // "Sep 29, 2025" or "OCT 1, 2025"
+      /([A-Z][a-z]{2,8}\s+\d{1,2},\s+\d{4})/i, // "September 29, 2025"
+      /(\d{1,2}\/\d{1,2}\/\d{4})/i, // "9/29/2025"
+      /(\d{4}-\d{2}-\d{2})/i, // "2025-09-29"
+      /([A-Z][a-z]{2,8}\s+\d{1,2}\s*,?\s*\d{4})/i // "September 29 2025"
+    ]
+    
+    for (const pattern of datePatterns) {
+      const match = html.match(pattern)
+      if (match) {
+        date = match[1].trim()
+        break
+      }
     }
+
+    // Debug logging to help identify parsing issues
+    console.log(`Race Results Parsing - Series URL: ${seriesUrl}`)
+    console.log(`Parsed Winner: ${winner}`)
+    console.log(`Parsed Track: ${track}`)
+    console.log(`Parsed Date: ${date}`)
 
     return {
       winner,
