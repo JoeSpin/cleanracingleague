@@ -338,6 +338,60 @@
   }
 }
 
+/* Social Links Styling */
+.socialLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px !important;
+  transition: all 0.2s ease;
+}
+
+.socialIcon {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+}
+
+.socialText {
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.socialLink:hover .socialIcon {
+  transform: scale(1.1);
+}
+
+/* YouTube specific styling */
+.socialLink[href*="youtube"]:hover {
+  color: #ff0000 !important;
+  background: rgba(255, 0, 0, 0.1) !important;
+}
+
+/* Discord specific styling */
+.socialLink[href*="discord"]:hover {
+  color: #5865f2 !important;
+  background: rgba(88, 101, 242, 0.1) !important;
+}
+
+/* Mobile adjustments for social links */
+@media (max-width: 880px) {
+  .socialLink {
+    justify-content: center;
+    padding: 14px 20px !important;
+  }
+  
+  .socialIcon {
+    width: 22px;
+    height: 22px;
+  }
+  
+  .socialText {
+    font-size: 1rem;
+  }
+}
+
 @keyframes navFade {
   from {
     opacity: 0;
