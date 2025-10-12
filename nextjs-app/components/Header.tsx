@@ -161,7 +161,7 @@ export default function Header({ currentLeague }: HeaderProps) {
             Rules
           </Link>
           <Link href="/lifetime-stats" className={styles.navLink} onClick={closeNav}>
-            Lifetime Stats
+            Stats
           </Link>
           <Link 
             href="https://www.youtube.com/@OSRNetwork2016/streams" 
@@ -182,7 +182,7 @@ export default function Header({ currentLeague }: HeaderProps) {
             <span className={styles.socialText}>YouTube</span>
           </Link>
           <Link 
-            href="https://discord.gg/cleanracingleague" 
+            href="https://discord.gg/yrvgHQpF8k" 
             className={`${styles.navLink} ${styles.socialLink}`}
             target="_blank" 
             rel="noopener"
