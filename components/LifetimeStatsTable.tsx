@@ -40,8 +40,8 @@ interface LifetimeStatsTableProps {
 const getSimRacerHubUrl = (series: string): string => {
   const leagueIds = {
     'trucks': '4807',
-    'arca': '5983', 
-    'elite': '5662'
+    'arca': '5662', 
+    'elite': '5983'
   }
   return `https://www.simracerhub.com/league_stats.php?league_id=${leagueIds[series as keyof typeof leagueIds] || '4807'}`
 }
@@ -83,7 +83,12 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
     setCurrentPage(1)
     setSortKey('starts')
     setSortDirection('desc')
-    fetchData()
+    // Small delay to ensure clean state transitions
+    const timeoutId = setTimeout(() => {
+      fetchData()
+    }, 100)
+    
+    return () => clearTimeout(timeoutId)
   }, [selectedSeries])
 
   useEffect(() => {
@@ -100,10 +105,13 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
       const params = new URLSearchParams({
         series: selectedSeries,
         page: currentPage.toString(),
-        ...(loadAllPages && { loadAll: 'true' })
+        ...(loadAllPages && { loadAll: 'true' }),
+        _t: Date.now().toString() // Cache buster
       })
       
-      const response = await fetch(`/api/lifetime-stats?${params}`)
+      const response = await fetch(`/api/lifetime-stats?${params}`, {
+        cache: 'no-cache'
+      })
       
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.status}`)

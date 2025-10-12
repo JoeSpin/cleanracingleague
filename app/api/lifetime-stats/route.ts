@@ -33,11 +33,11 @@ const SERIES_CONFIG = {
     name: 'Trucks'
   },
   arca: {
-    url: 'https://www.simracerhub.com/league_stats.php?league_id=5983', 
+    url: 'https://www.simracerhub.com/league_stats.php?league_id=5662', 
     name: 'ARCA'
   },
   elite: {
-    url: 'https://www.simracerhub.com/league_stats.php?league_id=5662',
+    url: 'https://www.simracerhub.com/league_stats.php?league_id=5983',
     name: 'Elite'
   }
 }
@@ -133,8 +133,9 @@ async function fetchWithPuppeteer(url: string): Promise<LifetimeStatsRow[]> {
         miles: parseInt(row[20]) || 0, // Column 20, not 11
       }));
       
-      // Filter for drivers with at least 10 starts
-      const driversWithMinimumStarts = allDrivers.filter(driver => driver.starts >= 10);
+      // Series-specific minimum starts filter
+      const minimumStarts = url.includes('league_id=4807') ? 10 : 1; // Trucks: 10+, ARCA/Elite: 1+
+      const driversWithMinimumStarts = allDrivers.filter(driver => driver.starts >= minimumStarts);
       
       // Re-assign position numbers after filtering
       const filteredDrivers = driversWithMinimumStarts.map((driver, index) => ({
@@ -143,7 +144,7 @@ async function fetchWithPuppeteer(url: string): Promise<LifetimeStatsRow[]> {
       }));
       
       console.log(`Total drivers found: ${allDrivers.length}`);
-      console.log(`Drivers with 10+ starts: ${filteredDrivers.length}`);
+      console.log(`Drivers with ${minimumStarts}+ starts: ${filteredDrivers.length}`);
       
       return filteredDrivers;
     }
