@@ -6,16 +6,16 @@ import styles from './LifetimeStatsTable.module.css'
 interface LifetimeStatsRow {
   position: number
   driver: string
-  starts: number
+  avgStart: string
+  poles: number
+  avgFinish: string
   wins: number
   top5: number
   top10: number
-  poles: number
-  laps: number
   incidents: number
-  avgFinish: string
-  bestFinish: number
-  championships: number
+  laps: number
+  lapsLed: number
+  miles: number
 }
 
 interface LifetimeStatsData {
@@ -42,7 +42,7 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedSeries, setSelectedSeries] = useState(initialSeries)
-  const [sortKey, setSortKey] = useState<SortKey>('position')
+  const [sortKey, setSortKey] = useState<SortKey>('driver')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [currentPage, setCurrentPage] = useState(1)
   const [loadAllPages, setLoadAllPages] = useState(false)
@@ -54,18 +54,17 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
   ]
 
   const columnConfig = [
-    { key: 'position' as SortKey, label: 'Pos', sortable: true, align: 'center' },
-    { key: 'driver' as SortKey, label: 'Driver', sortable: true, align: 'left' },
-    { key: 'starts' as SortKey, label: 'Starts', sortable: true, align: 'center' },
+    { key: 'driver' as SortKey, label: 'Name', sortable: true, align: 'left' },
+    { key: 'avgStart' as SortKey, label: 'Avg Start', sortable: true, align: 'center' },
+    { key: 'poles' as SortKey, label: 'Poles', sortable: true, align: 'center' },
+    { key: 'avgFinish' as SortKey, label: 'Avg Finish', sortable: true, align: 'center' },
     { key: 'wins' as SortKey, label: 'Wins', sortable: true, align: 'center' },
     { key: 'top5' as SortKey, label: 'Top 5', sortable: true, align: 'center' },
     { key: 'top10' as SortKey, label: 'Top 10', sortable: true, align: 'center' },
-    { key: 'poles' as SortKey, label: 'Poles', sortable: true, align: 'center' },
+    { key: 'incidents' as SortKey, label: 'Inc', sortable: true, align: 'center' },
     { key: 'laps' as SortKey, label: 'Laps', sortable: true, align: 'center' },
-    { key: 'incidents' as SortKey, label: 'Inc.', sortable: true, align: 'center' },
-    { key: 'avgFinish' as SortKey, label: 'Avg Fin', sortable: true, align: 'center' },
-    { key: 'bestFinish' as SortKey, label: 'Best', sortable: true, align: 'center' },
-    { key: 'championships' as SortKey, label: 'Titles', sortable: true, align: 'center' }
+    { key: 'lapsLed' as SortKey, label: 'Laps Led', sortable: true, align: 'center' },
+    { key: 'miles' as SortKey, label: 'Miles', sortable: true, align: 'center' }
   ]
 
   useEffect(() => {
@@ -125,8 +124,8 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
       
       // Handle string values
       if (typeof aVal === 'string' && typeof bVal === 'string') {
-        // For avgFinish, convert to number for proper sorting
-        if (sortKey === 'avgFinish') {
+        // For avgFinish and avgStart, convert to number for proper sorting
+        if (sortKey === 'avgFinish' || sortKey === 'avgStart') {
           aVal = parseFloat(aVal as string) || 999
           bVal = parseFloat(bVal as string) || 999
         } else {
@@ -156,10 +155,10 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
   }
 
   const formatValue = (key: SortKey, value: any) => {
-    if (key === 'laps' && typeof value === 'number') {
+    if ((key === 'laps' || key === 'lapsLed' || key === 'miles') && typeof value === 'number') {
       return value.toLocaleString()
     }
-    if (key === 'avgFinish' && typeof value === 'string') {
+    if ((key === 'avgFinish' || key === 'avgStart') && typeof value === 'string') {
       const num = parseFloat(value)
       return isNaN(num) ? value : num.toFixed(1)
     }
