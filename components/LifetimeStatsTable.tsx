@@ -53,8 +53,8 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedSeries, setSelectedSeries] = useState(initialSeries)
-  const [sortKey, setSortKey] = useState<SortKey>('driver')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [sortKey, setSortKey] = useState<SortKey>('starts')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [loadAllPages, setLoadAllPages] = useState(false)
 
@@ -81,6 +81,8 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
 
   useEffect(() => {
     setCurrentPage(1)
+    setSortKey('starts')
+    setSortDirection('desc')
     fetchData()
   }, [selectedSeries])
 
