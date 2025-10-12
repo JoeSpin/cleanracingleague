@@ -160,6 +160,9 @@ export default function Header({ currentLeague }: HeaderProps) {
           <Link href="#rules" className={styles.navLink} onClick={closeNav}>
             Rules
           </Link>
+          <Link href="/lifetime-stats" className={styles.navLink} onClick={closeNav}>
+            Lifetime Stats
+          </Link>
           <Link 
             href="https://www.youtube.com/@OSRNetwork2016/streams" 
             className={`${styles.navLink} ${styles.socialLink}`}
