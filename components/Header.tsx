@@ -145,24 +145,20 @@ export default function Header({ currentLeague }: HeaderProps) {
           className={`${styles.nav} ${isNavOpen ? styles.open : ''}`}
           role="navigation"
         >
-          <Link href="#sponsors" className={styles.navLink} onClick={closeNav}>
-            Partners
-          </Link>
-          <Link href="#standings" className={styles.navLink} onClick={closeNav}>
-            Standings
-          </Link>
-          <Link href="#schedule" className={styles.navLink} onClick={closeNav}>
-            Schedule
-          </Link>
-          <Link href="#playoff-banners" className={styles.navLink} onClick={closeNav}>
-            Banners
-          </Link>
-          <Link href="#rules" className={styles.navLink} onClick={closeNav}>
-            Rules
+          <Link href="/" className={styles.navLink} onClick={closeNav}>
+            Home
           </Link>
           <Link href="/lifetime-stats" className={styles.navLink} onClick={closeNav}>
             Stats
           </Link>
+          <button 
+            className={`${styles.navLink} ${styles.donationButton}`}
+            disabled
+            title="Coming Soon"
+            aria-label="Donation button - Coming Soon"
+          >
+            Donate
+          </button>
           <Link 
             href="https://www.youtube.com/@OSRNetwork2016/streams" 
             className={`${styles.navLink} ${styles.socialLink}`}

@@ -6,6 +6,7 @@ import styles from './LifetimeStatsTable.module.css'
 interface LifetimeStatsRow {
   position: number
   driver: string
+  starts: number
   avgStart: string
   poles: number
   avgFinish: string
@@ -35,6 +36,16 @@ interface LifetimeStatsTableProps {
   initialSeries?: string
 }
 
+// Helper function to get SimRacerHub URL for each series
+const getSimRacerHubUrl = (series: string): string => {
+  const leagueIds = {
+    'trucks': '4807',
+    'arca': '5983', 
+    'elite': '5662'
+  }
+  return `https://www.simracerhub.com/league_stats.php?league_id=${leagueIds[series as keyof typeof leagueIds] || '4807'}`
+}
+
 const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({ 
   initialSeries = 'trucks' 
 }) => {
@@ -55,6 +66,7 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
 
   const columnConfig = [
     { key: 'driver' as SortKey, label: 'Name', sortable: true, align: 'left' },
+    { key: 'starts' as SortKey, label: 'Starts', sortable: true, align: 'center' },
     { key: 'avgStart' as SortKey, label: 'Avg Start', sortable: true, align: 'center' },
     { key: 'poles' as SortKey, label: 'Poles', sortable: true, align: 'center' },
     { key: 'avgFinish' as SortKey, label: 'Avg Finish', sortable: true, align: 'center' },
@@ -276,6 +288,22 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Note about showing top 50 drivers */}
+      <div className={styles.note}>
+        <p>
+          <strong>Note:</strong> This page shows the top 50 drivers with 10+ starts for the selected series. 
+          <br />
+          <a 
+            href={getSimRacerHubUrl(selectedSeries)} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className={styles.simRacerHubLink}
+          >
+            View complete driver list on SimRacerHub →
+          </a>
+        </p>
       </div>
 
       {/* Pagination Navigation */}

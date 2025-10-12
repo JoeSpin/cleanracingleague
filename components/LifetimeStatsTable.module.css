@@ -69,11 +69,11 @@
 }
 
 .tableContainer {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--surface);
+  border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 1px solid #ddd;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
 }
 
 .table {
@@ -127,8 +127,10 @@
 
 .td {
   padding: 10px 8px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
   transition: background-color 0.2s ease;
+  color: var(--text);
+  background-color: var(--surface);
 }
 
 .td.left {
@@ -140,15 +142,15 @@
 }
 
 .row:hover .td {
-  background-color: #f8f9fa;
+  background-color: var(--surface-2);
 }
 
 .row:nth-child(even) .td {
-  background-color: #fafafa;
+  background-color: var(--background-alternate);
 }
 
 .row:nth-child(even):hover .td {
-  background-color: #f0f0f0;
+  background-color: var(--surface-2);
 }
 
 /* Loading State */
@@ -158,14 +160,14 @@
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #666;
+  color: var(--muted);
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #ffcc00;
+  border: 3px solid var(--surface-2);
+  border-top: 3px solid var(--crl-gold);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
@@ -200,22 +202,22 @@
 .error p {
   margin: 0 0 20px 0;
   font-size: 16px;
-  color: #666;
+  color: var(--muted);
 }
 
 .retryButton {
   padding: 10px 20px;
-  background: #ffcc00;
-  color: #000;
+  background: var(--crl-gold);
+  color: var(--bg);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius);
   cursor: pointer;
   font-weight: 600;
   transition: background-color 0.2s ease;
 }
 
 .retryButton:hover {
-  background: #e6b800;
+  background: var(--crl-gold-2);
 }
 
 /* Pagination Controls */
@@ -287,6 +289,43 @@
   cursor: not-allowed;
 }
 
+/* Note about driver count */
+.note {
+  margin: 20px 0;
+  padding: 15px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.note p {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.note strong {
+  color: var(--text);
+}
+
+.simRacerHubLink {
+  color: #ffcc00;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  transition: color 0.2s ease;
+}
+
+.simRacerHubLink:hover {
+  color: #ffd633;
+  text-decoration: underline;
+}
+
 /* No Data State */
 .noData {
   text-align: center;
@@ -319,6 +358,19 @@
     justify-content: center;
     flex-wrap: wrap;
     gap: 10px;
+  }
+
+  .note {
+    margin: 15px 0;
+    padding: 12px 15px;
+  }
+
+  .note p {
+    font-size: 13px;
+  }
+
+  .simRacerHubLink {
+    font-size: 13px;
   }
 
   .tableContainer {
