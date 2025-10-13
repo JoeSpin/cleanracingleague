@@ -604,7 +604,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const config = SERIES_CONFIG[series]
-    console.log(`Fetching lifetime stats for ${config.name}...`)
+    console.log(`Fetching lifetime stats for ${config.name} (${series})...`)
+    console.log(`Using URL: ${config.url}`)
     
     let result: { data: LifetimeStatsRow[], totalPages: number, totalDrivers: number }
     let currentPage = page

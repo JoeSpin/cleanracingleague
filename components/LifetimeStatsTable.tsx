@@ -109,6 +109,8 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
         _t: Date.now().toString() // Cache buster
       })
       
+      console.log(`Frontend requesting series: "${selectedSeries}", URL: /api/lifetime-stats?${params}`)
+      
       const response = await fetch(`/api/lifetime-stats?${params}`, {
         cache: 'no-cache'
       })
