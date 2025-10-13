@@ -80,22 +80,21 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
   ]
 
   useEffect(() => {
-    setCurrentPage(1)
-    setSortKey('starts')
-    setSortDirection('desc')
-    // Small delay to ensure clean state transitions
-    const timeoutId = setTimeout(() => {
-      fetchData()
-    }, 100)
-    
-    return () => clearTimeout(timeoutId)
+    // Reset state when series changes
+    if (selectedSeries) {
+      setCurrentPage(1)
+      setSortKey('starts')
+      setSortDirection('desc')
+    }
   }, [selectedSeries])
 
   useEffect(() => {
-    if (!loadAllPages) {
+    // Only fetch data when we have all the necessary state set
+    if (selectedSeries && currentPage && !loadAllPages) {
+      console.log(`Frontend requesting series: "${selectedSeries}", page: ${currentPage}`)
       fetchData()
     }
-  }, [currentPage, loadAllPages])
+  }, [selectedSeries, currentPage, loadAllPages])
 
   const fetchData = async () => {
     setLoading(true)
@@ -108,8 +107,6 @@ const LifetimeStatsTable: React.FC<LifetimeStatsTableProps> = ({
         ...(loadAllPages && { loadAll: 'true' }),
         _t: Date.now().toString() // Cache buster
       })
-      
-      console.log(`Frontend requesting series: "${selectedSeries}", URL: /api/lifetime-stats?${params}`)
       
       const response = await fetch(`/api/lifetime-stats?${params}`, {
         cache: 'no-cache'

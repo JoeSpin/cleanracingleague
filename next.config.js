@@ -11,6 +11,10 @@ const nextConfig = {
   },
   basePath: process.env.GITHUB_PAGES === 'true' ? '/cleanracingleague' : '',
   assetPrefix: process.env.GITHUB_PAGES === 'true' ? '/cleanracingleague' : '',
+  // Reduce CSS preload warnings by disabling aggressive preloading
+  experimental: {
+    optimizeCss: false
+  }
 }
 
 module.exports = nextConfig
