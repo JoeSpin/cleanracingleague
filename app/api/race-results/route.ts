@@ -224,7 +224,7 @@ function parseRaceResults(html: string, seriesUrl: string): RaceResult | null {
       track,
       date,
       resultsUrl: seriesUrl // Use the SimRacerHub URL for the series
-    }
+    };
   } catch (error) {
     console.error('Error parsing race results:', error)
     return null
