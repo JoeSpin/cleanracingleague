@@ -6,118 +6,223 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const league = searchParams.get('league') || 'elite';
     
-    // Map leagues to series IDs based on the standings API
-    const seriesIds: Record<string, string> = {
-      'elite': '10554',
-      'trucks': '13239', 
+    // Map leagues to series IDs (corrected to match standings API)
+    const seriesConfig: Record<string, string> = {
+      'trucks': '10554',
+      'elite': '13239', 
       'arca': '12526'
     };
     
-    const seriesId = seriesIds[league] || seriesIds['elite'];
+    const seriesId = seriesConfig[league] || seriesConfig['elite'];
     
-    // Fetch the race results page from SimRacerHub
+    // Use the correct season_race.php URL (singular, not plural)
     const url = `https://www.simracerhub.com/scoring/season_race.php?series_id=${seriesId}`;
+    
     const response = await fetch(url, {
-      next: { revalidate: 300 }
+      next: { revalidate: 300 },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch data from SimRacerHub');
+      throw new Error(`Failed to fetch race data: ${response.status}`);
     }
 
     const html = await response.text();
     
-    // Parse the HTML to find race results
-    // Look for table rows containing race data - be more flexible with the search
-    const raceRowPattern = /<tr[^>]*>[\s\S]*?<\/tr>/gi;
-    const allRows = Array.from(html.matchAll(raceRowPattern));
+    // More flexible parsing approach - look for any race-related data
+    console.log('Fetched HTML length:', html.length); // Debug log
     
-    let latestRace = null;
-    let latestWinner = null;
+    // First try: Look for completed races in any table structure
+    const allText = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+    console.log('Sample text:', allText.substring(0, 500)); // Debug log
     
-    // Parse each row to find the most recent completed race
-    for (const rowMatch of allRows) {
-      const row = rowMatch[0];
-      
-      // Skip header rows and empty rows
-      if (row.includes('<th') || row.includes('colspan') || row.length < 50) {
-        continue;
+    // Look for track names anywhere in the content
+    const trackNames = [
+      'Texas Motor Speedway', 'Talladega Superspeedway', 'Daytona International Speedway',
+      'Charlotte Motor Speedway', 'Atlanta Motor Speedway', 'Las Vegas Motor Speedway',
+      'Phoenix Raceway', 'Homestead-Miami Speedway', 'Kansas Speedway', 'Kentucky Speedway',
+      'Michigan International Speedway', 'Auto Club Speedway', 'Indianapolis Motor Speedway',
+      'Pocono Raceway', 'New Hampshire Motor Speedway', 'Dover International Speedway',
+      'Martinsville Speedway', 'Richmond Raceway', 'Bristol Motor Speedway', 'Darlington Raceway',
+      'Watkins Glen International', 'Sonoma Raceway', 'Road America', 'Chicagoland Speedway',
+      'Iowa Speedway', 'Gateway Motorsports Park', 'Mid-Ohio Sports Car Course'
+    ];
+    
+    let foundTrack = null;
+    let foundWinner = null;
+    let foundDate = null;
+    
+    // Find track name in content
+    for (const track of trackNames) {
+      if (html.includes(track)) {
+        foundTrack = track;
+        console.log('Found track:', track); // Debug log
+        break;
       }
+    }
+    
+    // If we found a track, try to find winner in any results table
+    if (foundTrack) {
+      // Look for ANY table that contains race results (position data)
+      const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+      let tableMatch;
       
-      // Extract all cell data from this row
-      const cellPattern = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-      const cells = Array.from(row.matchAll(cellPattern));
-      
-      if (cells.length >= 2) {
-        // Try to find cells that look like race data
-        let trackData = '';
-        let winnerData = '';
+      while ((tableMatch = tableRegex.exec(html)) !== null) {
+        const tableContent = tableMatch[1];
         
-        for (let i = 0; i < cells.length && i < 5; i++) {
-          const cellContent = cells[i]?.[1]?.replace(/<[^>]*>/g, '').trim();
+        // Look for tables that contain position/results data
+        if (tableContent.includes('POS') || tableContent.includes('Pos') || 
+            tableContent.includes('Position') || tableContent.includes('P1') ||
+            tableContent.includes('<td>1</td>') || tableContent.includes('>1<')) {
           
-          // Look for track names (usually contain "Speedway", "Raceway", "International", etc.)
-          if (cellContent && (
-            cellContent.includes('Speedway') || 
-            cellContent.includes('Raceway') || 
-            cellContent.includes('International') ||
-            cellContent.includes('Motor') ||
-            cellContent.includes('Superspeedway')
-          )) {
-            trackData = cellContent;
-          }
+          console.log('Found results table'); // Debug log
           
-          // Look for winner names (usually proper names, not numbers or dates)
-          if (cellContent && 
-              cellContent.length > 3 && 
-              cellContent.length < 50 &&
-              !cellContent.match(/^\d+$/) && // not just numbers
-              !cellContent.includes('/') && // not dates
-              !cellContent.includes(':') && // not times
-              !cellContent.includes('TBD') &&
-              !cellContent.includes('---') &&
-              cellContent.match(/[A-Za-z]/) // contains letters
-          ) {
-            // Could be a winner name
-            if (!winnerData || cellContent.length > winnerData.length) {
-              winnerData = cellContent;
+          // Parse table rows to find the POS 1 winner
+          const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+          let rowMatch;
+          
+          while ((rowMatch = rowRegex.exec(tableContent)) !== null) {
+            const rowContent = rowMatch[1];
+            
+            // Skip header rows
+            if (rowContent.includes('<th')) {
+              continue;
+            }
+            
+            // Extract cells from this row
+            const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+            const rowCells: string[] = [];
+            let cellMatch;
+            
+            while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
+              const cellText = cellMatch[1].replace(/<[^>]*>/g, '').trim();
+              rowCells.push(cellText);
+            }
+            
+            if (rowCells.length > 0) {
+              console.log('Row cells:', rowCells.slice(0, 5)); // Debug log - show first 5 cells
+            }
+            
+            // Look for a row that contains "1" in the position column
+            if (rowCells.length >= 2) {
+              const positionCell = rowCells[0]?.trim();
+              
+              // Check if this is the first position (winner)
+              if (positionCell === '1') {
+                console.log('Found POS 1 row:', rowCells); // Debug log
+                
+                // Look for the driver name in the subsequent cells
+                for (let i = 1; i < rowCells.length && i < 6; i++) { // Check first 5 cells after position
+                  const cell = rowCells[i];
+                  
+                  // Check if this cell looks like a driver name
+                  if (cell && 
+                      cell.length > 3 && 
+                      cell.length < 50 &&
+                      /^[A-Za-z\s\-\.]+$/.test(cell) && // letters, spaces, hyphens, dots
+                      !cell.includes('Speedway') &&
+                      !cell.includes('Raceway') &&
+                      !cell.includes('International') &&
+                      !cell.includes('Motor') &&
+                      !cell.includes('TBD') &&
+                      !cell.includes('---') &&
+                      !cell.includes('/') &&
+                      !cell.match(/^\d+$/) && // not just numbers
+                      !cell.includes('pts') &&
+                      !cell.includes('laps') &&
+                      !cell.includes('DNF') &&
+                      !cell.includes('DNS') &&
+                      cell.split(' ').length >= 2 // first and last name
+                  ) {
+                    foundWinner = cell;
+                    console.log('Found winner in POS 1 row:', cell); // Debug log
+                    break;
+                  }
+                }
+                
+                if (foundWinner) {
+                  break;
+                }
+              }
             }
           }
-        }
-        
-        // If we found both track and winner data, this is likely a completed race
-        if (trackData && winnerData) {
-          latestRace = trackData;
-          latestWinner = winnerData;
-          break; // Take the first completed race we find
+          
+          if (foundWinner) {
+            break;
+          }
         }
       }
     }
     
-    // If we couldn't parse the data, try a simpler approach
-    if (!latestRace || !latestWinner) {
-      // Look for any text that looks like track names and winner names
-      const trackMatches = html.match(/(?:Texas Motor Speedway|Talladega Superspeedway|Daytona International Speedway|Charlotte Motor Speedway|Atlanta Motor Speedway|Las Vegas Motor Speedway|Phoenix Raceway|Homestead-Miami Speedway|Kansas Speedway|Kentucky Speedway|Michigan International Speedway|Auto Club Speedway|Indianapolis Motor Speedway|Pocono Raceway|New Hampshire Motor Speedway|Dover International Speedway|Martinsville Speedway|Richmond Raceway|Bristol Motor Speedway|Darlington Raceway|Watkins Glen International|Sonoma Raceway|Road America|Roval)/i);
+    // If we still don't have a winner, try a broader search
+    if (foundTrack && !foundWinner) {
+      console.log('Trying broader winner search'); // Debug log
       
-      if (trackMatches) {
-        latestRace = trackMatches[0];
-        // For now, if we can't find winner, return track info with placeholder
-        latestWinner = 'Race Winner';
+      // Look for common driver name patterns in the HTML
+      const driverPatterns = [
+        /([A-Z][a-z]+ [A-Z][a-z]+)/g, // First Last
+        /([A-Z]\. [A-Z][a-z]+)/g,     // J. Smith  
+        /([A-Z][a-z]+ [A-Z]\. [A-Z][a-z]+)/g // First M. Last
+      ];
+      
+      for (const pattern of driverPatterns) {
+        const matches = html.match(pattern);
+        if (matches) {
+          // Filter out obvious non-driver names
+          const validNames = matches.filter(name => 
+            !name.includes('Motor') && 
+            !name.includes('Speed') && 
+            !name.includes('Track') &&
+            !name.includes('Race') &&
+            !name.includes('Racing') &&
+            !name.includes('League') &&
+            !name.includes('Series') &&
+            !name.includes('Championship') &&
+            !name.includes('Community') &&
+            !name.includes('Calendar') &&
+            !name.includes('Schedule') &&
+            !name.includes('Content') &&
+            !name.includes('Support') &&
+            !name.includes('Patreon') &&
+            !name.includes('iRacing') &&
+            !name.includes('SimRacer') &&
+            !name.includes('Subscribe') &&
+            name.length < 30 &&
+            name.length > 5 && // Must be longer than 5 characters
+            !name.match(/^\d/) && // Don't start with numbers
+            name.split(' ').length >= 2 // Must have at least 2 words (first/last name)
+          );
+          
+          if (validNames.length > 0) {
+            foundWinner = validNames[0];
+            console.log('Found winner via pattern:', foundWinner); // Debug log
+            break;
+          }
+        }
       }
     }
     
-    if (!latestRace || !latestWinner) {
-      return NextResponse.json({
-        result: null,
-        lastUpdated: new Date().toISOString()
-      });
+    if (!foundTrack) {
+      console.log('No track found in HTML'); // Debug log
+      throw new Error('No race track information found');
+    }
+    
+    if (!foundWinner) {
+      console.log('No winner found, using placeholder'); // Debug log
+      foundWinner = 'Race Winner';
+    }
+    
+    if (!foundDate) {
+      foundDate = new Date().toISOString().split('T')[0];
     }
 
     return NextResponse.json({
       result: {
-        track: latestRace,
-        winner: latestWinner,
-        date: new Date().toISOString().split('T')[0]
+        track: foundTrack,
+        winner: foundWinner,
+        date: foundDate
       },
       lastUpdated: new Date().toISOString()
     });
@@ -125,8 +230,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Race results API error:', error);
     return NextResponse.json({ 
-      result: null,
-      lastUpdated: new Date().toISOString()
+      error: 'Failed to fetch race results',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { 
+      status: 500 
     });
   }
 }
