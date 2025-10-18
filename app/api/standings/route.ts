@@ -230,8 +230,8 @@ export async function GET(request: NextRequest) {
       headers: {
         'User-Agent': 'Clean Racing League Bot/1.0',
       },
-      // Add cache headers for better performance
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      // Cache for 5 minutes for more frequent updates
+      next: { revalidate: 300 }, // Cache for 5 minutes
     })
 
     if (!response.ok) {
@@ -255,7 +255,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(standingsData, {
       headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=1800',
       },
     })
     
@@ -279,7 +279,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(mockData, {
       status: 200, // Return 200 with fallback data instead of error
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
       },
     })
   }
