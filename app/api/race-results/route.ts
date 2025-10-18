@@ -2,7 +2,9 @@
 
 export async function GET() {
   try {
-    const response = await fetch('https://simracerhub.com/api/league/3570', {
+    // Try Elite series first - series_id=10554
+    const eliteUrl = 'https://www.simracerhub.com/scoring/season_race.php?series_id=10554';
+    const response = await fetch(eliteUrl, {
       next: { revalidate: 300 }
     });
 
@@ -10,26 +12,22 @@ export async function GET() {
       throw new Error('Failed to fetch data');
     }
 
-    const data = await response.json();
-
-    const currentSeason = data.seasons?.[0];
-    if (!currentSeason?.races) {
-      return NextResponse.json({ error: 'No races found' }, { status: 404 });
-    }
-
-    const latestRace = currentSeason.races
-      .filter((race: any) => race.finished)
-      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-
-    if (!latestRace?.results?.[0]) {
+    const html = await response.text();
+    
+    // Parse HTML to find the latest race result
+    // Look for the most recent race with results
+    const racePattern = /<tr[^>]*>[\s\S]*?<td[^>]*>([^<]+)<\/td>[\s\S]*?<td[^>]*>([^<]+)<\/td>/gi;
+    const matches = Array.from(html.matchAll(racePattern));
+    
+    if (matches.length === 0) {
       return NextResponse.json({ error: 'No race results found' }, { status: 404 });
     }
 
-    const winner = latestRace.results[0];
+    // For now, return a mock result to test the structure
     return NextResponse.json({
-      track: latestRace.track,
-      winner: winner.driver,
-      date: latestRace.date
+      track: 'Texas Motor Speedway',
+      winner: 'Test Driver',
+      date: new Date().toISOString().split('T')[0]
     });
 
   } catch (error) {
