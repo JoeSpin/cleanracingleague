@@ -222,7 +222,8 @@ export async function GET(request: NextRequest) {
       result: {
         track: foundTrack,
         winner: foundWinner,
-        date: foundDate
+        date: foundDate,
+        resultsUrl: url // Include the SimRacerHub URL for "View Full Results"
       },
       lastUpdated: new Date().toISOString()
     });
