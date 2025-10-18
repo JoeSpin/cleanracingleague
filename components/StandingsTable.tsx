@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import styles from './StandingsTable.module.css'
+import { calculatePlayoffStandings, getPlayoffRoundInfo, type PlayoffDriver } from '../lib/playoff-logic'
+import { PLAYOFF_CONFIG, getPlayoffTitle } from '../lib/playoff-config'
 
 interface StandingsTableProps {
   league: 'trucks' | 'elite' | 'arca'
@@ -47,15 +49,18 @@ interface StandingsResponse {
   drivers: Driver[]
   teams?: Team[]
   lastUpdated: string
+  currentRace?: number
 }
 
 export default function StandingsTable({ league }: StandingsTableProps) {
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [teams, setTeams] = useState<Team[]>([])
+  const [playoffDrivers, setPlayoffDrivers] = useState<PlayoffDriver[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<string>('')
-  const [activeTab, setActiveTab] = useState<'drivers' | 'teams'>('drivers')
+  const [currentRace, setCurrentRace] = useState<number>(PLAYOFF_CONFIG.currentRace)
+  const [activeTab, setActiveTab] = useState<'drivers' | 'teams' | 'playoffs'>('drivers')
   const [sortConfig, setSortConfig] = useState<{
     key: string
     direction: 'asc' | 'desc'
@@ -78,6 +83,17 @@ export default function StandingsTable({ league }: StandingsTableProps) {
         setDrivers(data.drivers || [])
         setTeams(data.teams || [])
         setLastUpdated(data.lastUpdated)
+        
+        // Use race number from API if available, otherwise fall back to config
+        const raceNumber = data.currentRace || PLAYOFF_CONFIG.currentRace
+        setCurrentRace(raceNumber)
+        
+        // Calculate playoff standings only for trucks league
+        if (league === 'trucks' && data.drivers && data.drivers.length > 0) {
+          const playoff = calculatePlayoffStandings(data.drivers, raceNumber)
+          setPlayoffDrivers(playoff)
+        }
+        
         setLoading(false)
       } catch (err) {
         console.error('Error fetching standings:', err)
@@ -192,6 +208,17 @@ export default function StandingsTable({ league }: StandingsTableProps) {
         >
           Driver Standings
         </button>
+        {league === 'trucks' && (
+          <button
+            className={`${styles.tab} ${activeTab === 'playoffs' ? styles.active : ''}`}
+            onClick={() => {
+              setActiveTab('playoffs')
+              setSortConfig(null)
+            }}
+          >
+            Playoff Standings
+          </button>
+        )}
         {LEAGUE_CONFIG[league].includeTeams && (
           <button
             className={`${styles.tab} ${activeTab === 'teams' ? styles.active : ''}`}
@@ -208,6 +235,12 @@ export default function StandingsTable({ league }: StandingsTableProps) {
       {lastUpdated && (
         <div className={styles.lastUpdated}>
           Last updated: {new Date(lastUpdated).toLocaleString()}
+        </div>
+      )}
+
+      {activeTab === 'playoffs' && league === 'trucks' && (
+        <div className={styles.playoffHeader}>
+          <h3>{getPlayoffTitle(currentRace)}</h3>
         </div>
       )}
 
@@ -258,6 +291,69 @@ export default function StandingsTable({ league }: StandingsTableProps) {
                   <td>{driver.incidents}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        ) : activeTab === 'playoffs' && league === 'trucks' ? (
+          <table className={styles.standingsTable} id="playoff_table">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Driver</th>
+                <th>Points</th>
+                <th>+/-</th>
+                <th>Wins</th>
+                <th>Top 5</th>
+                <th>Top 10</th>
+              </tr>
+            </thead>
+            <tbody>
+              {playoffDrivers.map((driver, index) => {
+                const roundInfo = getPlayoffRoundInfo(currentRace);
+                const isCutoffLine = index === roundInfo.cutoff - 1;
+                
+                return (
+                  <React.Fragment key={driver.name}>
+                    <tr 
+                      className={`
+                        ${driver.isAboveCutoff ? styles.playoffIn : styles.playoffOut} 
+                        ${driver.playoffStatus === 'ADV' ? styles.playoffAdvanced : ''}
+                      `}
+                    >
+                      <td>{driver.position}</td>
+                      <td>
+                        {driver.profileUrl ? (
+                          <a 
+                            href={driver.profileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ color: 'var(--crl-gold)', textDecoration: 'none' }}
+                          >
+                            {driver.name}
+                          </a>
+                        ) : (
+                          driver.name
+                        )}
+                      </td>
+                      <td>{driver.points}</td>
+                      <td className={styles.playoffPoints}>
+                        {driver.playoffPoints}
+                      </td>
+                      <td>{driver.wins}</td>
+                      <td>{driver.top5}</td>
+                      <td>{driver.top10}</td>
+                    </tr>
+                    {isCutoffLine && (
+                      <tr className={styles.playoffCutoff}>
+                        <td colSpan={7}>
+                          <div className={styles.cutoffLine}>
+                            Playoff Cutoff
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                )
+              })}
             </tbody>
           </table>
         ) : LEAGUE_CONFIG[league].includeTeams ? (

@@ -215,7 +215,30 @@ export async function GET(request: NextRequest) {
     }
     
     if (!foundDate) {
-      foundDate = new Date().toISOString().split('T')[0];
+      foundDate = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } else {
+      // Try to parse and reformat the found date
+      try {
+        const parsedDate = new Date(foundDate);
+        if (!isNaN(parsedDate.getTime())) {
+          foundDate = parsedDate.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+        }
+      } catch (e) {
+        // If parsing fails, use current date
+        foundDate = new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+      }
     }
 
     return NextResponse.json({

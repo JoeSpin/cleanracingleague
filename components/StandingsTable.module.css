@@ -225,3 +225,71 @@
   margin-bottom: 1rem;
   font-style: italic;
 }
+
+/* Playoff Standings Styles */
+.playoffHeader {
+  margin-bottom: 1rem;
+}
+
+.playoffHeader h3 {
+  color: var(--crl-gold);
+  font-family: "League Spartan", sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.playoffIn {
+  background: rgba(46, 125, 50, 0.1) !important;
+  border-left: 4px solid #2e7d32;
+}
+
+.playoffOut {
+  background: rgba(211, 47, 47, 0.1) !important;
+  border-left: 4px solid #d32f2f;
+}
+
+.playoffAdvanced {
+  background: linear-gradient(135deg, rgba(255, 212, 0, 0.15), rgba(255, 193, 7, 0.1)) !important;
+  border-left: 4px solid var(--crl-gold) !important;
+  font-weight: 600;
+}
+
+.playoffPoints {
+  font-weight: 700;
+  text-align: center;
+}
+
+.playoffIn .playoffPoints {
+  color: #2e7d32;
+}
+
+.playoffOut .playoffPoints {
+  color: #d32f2f;
+}
+
+.playoffAdvanced .playoffPoints {
+  color: var(--crl-gold);
+  font-size: 1.1rem;
+}
+
+.playoffCutoff {
+  background: none !important;
+  border: none !important;
+}
+
+.cutoffLine {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  padding: 8px 0;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}

@@ -19,6 +19,7 @@ interface StandingsData {
   drivers: StandingsRow[]
   teams?: StandingsRow[]
   lastUpdated: string
+  currentRace?: number
 }
 
 const SERIES_CONFIG = {
@@ -34,6 +35,72 @@ const SERIES_CONFIG = {
     url: 'https://www.simracerhub.com/scoring/season_standings.php?series_id=12526',
     includeTeams: true,
   },
+}
+
+function extractCurrentRaceNumber(html: string): number {
+  try {
+    let maxRaceNumber = 0
+    
+    // Look specifically for span.race-date elements and extract their text content
+    const raceDateSpanRegex = /<span[^>]*class="[^"]*race-date[^"]*"[^>]*>([\s\S]*?)<\/span>/gi
+    let match
+    
+    console.log('Searching for span.race-date elements...') // Debug log
+    
+    while ((match = raceDateSpanRegex.exec(html)) !== null) {
+      // Extract the text content, removing any nested HTML tags
+      const rawContent = match[1]
+      const textContent = rawContent.replace(/<[^>]*>/g, '').trim()
+      
+      console.log('Found race-date span content:', textContent) // Debug log
+      
+      // Look for various race number patterns in the text content
+      const patterns = [
+        /Race\s+(\d+)/i,           // "Race 10"
+        /(\d+)\s+of\s+\d+/i,       // "10 of 16" 
+        /Round\s+(\d+)/i,          // "Round 10"
+        /Week\s+(\d+)/i,           // "Week 10"
+        /Event\s+(\d+)/i,          // "Event 10"
+        /\b(\d+)\b/g               // Any standalone number
+      ]
+      
+      for (const pattern of patterns) {
+        const matches = textContent.match(pattern)
+        if (matches) {
+          const raceNumber = parseInt(matches[1])
+          console.log(`Found race number ${raceNumber} using pattern ${pattern}`) // Debug log
+          
+          // Validate it's a reasonable race number (1-16 for typical NASCAR season)
+          if (raceNumber >= 1 && raceNumber <= 16 && raceNumber > maxRaceNumber) {
+            maxRaceNumber = raceNumber
+          }
+        }
+      }
+    }
+    
+    // Fallback: Look for any "Race X" patterns anywhere in the HTML if no span.race-date found
+    if (maxRaceNumber === 0) {
+      console.log('No race-date spans found, searching entire HTML...') // Debug log
+      const allRaceMatches = html.match(/Race\s+(\d+)/gi) || []
+      console.log('Found race patterns in HTML:', allRaceMatches.slice(0, 3)) // Debug log - show first 3
+      
+      for (const raceMatch of allRaceMatches) {
+        const numberMatch = raceMatch.match(/Race\s+(\d+)/i)
+        if (numberMatch) {
+          const raceNumber = parseInt(numberMatch[1])
+          if (raceNumber >= 1 && raceNumber <= 16 && raceNumber > maxRaceNumber) {
+            maxRaceNumber = raceNumber
+          }
+        }
+      }
+    }
+    
+    console.log('Final detected race number:', maxRaceNumber) // Debug log
+    return maxRaceNumber > 0 ? maxRaceNumber : 9 // Default to race 9 if not found
+  } catch (error) {
+    console.error('Error extracting race number:', error)
+    return 9 // Default fallback
+  }
 }
 
 function parseStandingsTables(html: string, seriesId: string): { drivers: StandingsRow[], teams: StandingsRow[] } {
@@ -244,6 +311,9 @@ export async function GET(request: NextRequest) {
     const seriesId = config.url.match(/series_id=(\d+)/)?.[1] || ''
     const { drivers, teams: parsedTeams } = parseStandingsTables(html, seriesId)
     
+    // Extract current race number from the HTML
+    const currentRace = extractCurrentRaceNumber(html)
+    
     // Use parsed teams only if configured to include teams for this league
     const teams = config.includeTeams ? parsedTeams : undefined
 
@@ -251,6 +321,7 @@ export async function GET(request: NextRequest) {
       drivers,
       teams,
       lastUpdated: new Date().toISOString(),
+      currentRace,
     }
 
     return NextResponse.json(standingsData, {
