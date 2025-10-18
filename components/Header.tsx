@@ -148,9 +148,6 @@ export default function Header({ currentLeague }: HeaderProps) {
           <Link href="/" className={styles.navLink} onClick={closeNav}>
             Home
           </Link>
-          <Link href="/lifetime-stats" className={styles.navLink} onClick={closeNav}>
-            Stats
-          </Link>
           <button 
             className={`${styles.navLink} ${styles.donationButton}`}
             disabled
