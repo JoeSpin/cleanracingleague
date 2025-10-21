@@ -37,28 +37,39 @@ export async function GET(request: NextRequest) {
     const allText = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
     console.log('Sample text:', allText.substring(0, 500)); // Debug log
     
-    // Look for track names anywhere in the content
-    const trackNames = [
-      'Texas Motor Speedway', 'Talladega Superspeedway', 'Daytona International Speedway',
-      'Charlotte Motor Speedway', 'Atlanta Motor Speedway', 'Las Vegas Motor Speedway',
-      'Phoenix Raceway', 'Homestead-Miami Speedway', 'Kansas Speedway', 'Kentucky Speedway',
-      'Michigan International Speedway', 'Auto Club Speedway', 'Indianapolis Motor Speedway',
-      'Pocono Raceway', 'New Hampshire Motor Speedway', 'Dover International Speedway',
-      'Martinsville Speedway', 'Richmond Raceway', 'Bristol Motor Speedway', 'Darlington Raceway',
-      'Watkins Glen International', 'Sonoma Raceway', 'Road America', 'Chicagoland Speedway',
-      'Iowa Speedway', 'Gateway Motorsports Park', 'Mid-Ohio Sports Car Course'
-    ];
-    
+    // Look for track name in h3.heading-track-name element
     let foundTrack = null;
     let foundWinner = null;
     let foundDate = null;
     
-    // Find track name in content
-    for (const track of trackNames) {
-      if (html.includes(track)) {
-        foundTrack = track;
-        console.log('Found track:', track); // Debug log
-        break;
+    // Extract track name from h3.heading-track-name
+    const trackHeadingRegex = /<h3[^>]*class="[^"]*heading-track-name[^"]*"[^>]*>([\s\S]*?)<\/h3>/gi;
+    const trackMatch = trackHeadingRegex.exec(html);
+    
+    if (trackMatch) {
+      foundTrack = trackMatch[1].replace(/<[^>]*>/g, '').trim();
+      console.log('Found track from h3.heading-track-name:', foundTrack); // Debug log
+    } else {
+      console.log('No h3.heading-track-name found, falling back to track name list'); // Debug log
+      
+      // Fallback: Look for track names anywhere in the content
+      const trackNames = [
+        'Texas Motor Speedway', 'Talladega Superspeedway', 'Daytona International Speedway',
+        'Charlotte Motor Speedway', 'Atlanta Motor Speedway', 'Las Vegas Motor Speedway',
+        'Phoenix Raceway', 'Homestead-Miami Speedway', 'Kansas Speedway', 'Kentucky Speedway',
+        'Michigan International Speedway', 'Auto Club Speedway', 'Indianapolis Motor Speedway',
+        'Pocono Raceway', 'New Hampshire Motor Speedway', 'Dover International Speedway',
+        'Martinsville Speedway', 'Richmond Raceway', 'Bristol Motor Speedway', 'Darlington Raceway',
+        'Watkins Glen International', 'Sonoma Raceway', 'Road America', 'Chicagoland Speedway',
+        'Iowa Speedway', 'Gateway Motorsports Park', 'Mid-Ohio Sports Car Course'
+      ];
+      
+      for (const track of trackNames) {
+        if (html.includes(track)) {
+          foundTrack = track;
+          console.log('Found track from fallback list:', track); // Debug log
+          break;
+        }
       }
     }
     
