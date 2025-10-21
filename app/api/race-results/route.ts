@@ -4,16 +4,15 @@ import { NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const league = searchParams.get('league') || 'elite';
+    const league = searchParams.get('league') || 'trucks';
     
     // Map leagues to series IDs (corrected to match standings API)
     const seriesConfig: Record<string, string> = {
       'trucks': '10554',
-      'elite': '13239', 
       'arca': '12526'
     };
     
-    const seriesId = seriesConfig[league] || seriesConfig['elite'];
+    const seriesId = seriesConfig[league] || seriesConfig['trucks'];
     
     // Use the correct season_race.php URL (singular, not plural)
     const url = `https://www.simracerhub.com/scoring/season_race.php?series_id=${seriesId}`;

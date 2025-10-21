@@ -34,10 +34,14 @@ export function calculatePlayoffStandings(
 ): PlayoffDriver[] {
   const currentRound = getCurrentPlayoffRound(raceNumber);
   const roundConfig = PLAYOFF_CONFIG.rounds[currentRound];
-  const winners = getRaceWinners(drivers);
+  
+  // Filter for playoff eligible drivers only
+  const eligibleDrivers = getPlayoffEligibleDrivers(drivers, raceNumber);
+  
+  const winners = getRaceWinners(eligibleDrivers);
   
   // Sort drivers: winners first (by wins desc), then by points desc
-  const sortedDrivers = [...drivers].sort((a, b) => {
+  const sortedDrivers = [...eligibleDrivers].sort((a, b) => {
     const aIsWinner = winners.includes(a.name);
     const bIsWinner = winners.includes(b.name);
     
@@ -90,6 +94,24 @@ export function calculatePlayoffStandings(
   });
   
   return playoffDrivers;
+}
+
+// Filter drivers for playoff eligibility
+function getPlayoffEligibleDrivers(drivers: Driver[], raceNumber: number): Driver[] {
+  // First, sort by points to determine top 20 in regular standings
+  const sortedByPoints = [...drivers].sort((a, b) => b.points - a.points);
+  
+  return sortedByPoints
+    .slice(0, 20) // Only consider top 20 in points
+    .filter(driver => {
+      // Check if driver has missed more than 3 races
+      const missedRaces = raceNumber - driver.starts;
+      const hasAttendanceWaiver = missedRaces <= 3;
+      
+      console.log(`Driver ${driver.name}: ${driver.starts} starts out of ${raceNumber} races, missed ${missedRaces}, eligible: ${hasAttendanceWaiver}`);
+      
+      return hasAttendanceWaiver;
+    });
 }
 
 export function getPlayoffRoundInfo(raceNumber: number = PLAYOFF_CONFIG.currentRace) {

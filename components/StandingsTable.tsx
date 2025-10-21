@@ -6,12 +6,11 @@ import { calculatePlayoffStandings, getPlayoffRoundInfo, type PlayoffDriver } fr
 import { PLAYOFF_CONFIG, getPlayoffTitle } from '../lib/playoff-config'
 
 interface StandingsTableProps {
-  league: 'trucks' | 'elite' | 'arca'
+  league: 'trucks' | 'arca'
 }
 
 const LEAGUE_CONFIG = {
   trucks: { includeTeams: true },
-  elite: { includeTeams: false },
   arca: { includeTeams: true },
 }
 

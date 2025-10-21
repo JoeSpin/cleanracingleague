@@ -27,10 +27,6 @@ const SERIES_CONFIG = {
     url: 'https://www.simracerhub.com/scoring/season_standings.php?series_id=10554',
     includeTeams: true,
   },
-  elite: {
-    url: 'https://www.simracerhub.com/scoring/season_standings.php?series_id=13239',
-    includeTeams: false,
-  },
   arca: {
     url: 'https://www.simracerhub.com/scoring/season_standings.php?series_id=12526',
     includeTeams: true,
@@ -284,7 +280,7 @@ export async function GET(request: NextRequest) {
 
   if (!league || !SERIES_CONFIG[league]) {
     return NextResponse.json(
-      { error: 'Invalid league. Must be one of: trucks, elite, arca' },
+      { error: 'Invalid league. Must be one of: trucks, arca' },
       { status: 400 }
     )
   }

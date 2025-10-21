@@ -7,7 +7,7 @@ import { useTheme } from './ThemeProvider'
 import styles from './Header.module.css'
 
 interface LeagueDropdownProps {
-  currentLeague: 'trucks' | 'elite' | 'arca'
+  currentLeague: 'trucks' | 'arca'
 }
 
 function LeagueDropdown({ currentLeague }: LeagueDropdownProps) {
@@ -16,7 +16,6 @@ function LeagueDropdown({ currentLeague }: LeagueDropdownProps) {
 
   const leagues = [
     { id: 'trucks', name: 'CRL Trucks', image: '/img/crltruck.png', path: '/trucks' },
-    { id: 'elite', name: 'CRL Elite', image: '/img/crlelite.png', path: '/elite' },
     { id: 'arca', name: 'CRL ARCA', image: '/img/crlarca.png', path: '/arca' }
   ]
 
@@ -97,7 +96,7 @@ function LeagueDropdown({ currentLeague }: LeagueDropdownProps) {
 }
 
 interface HeaderProps {
-  currentLeague?: 'trucks' | 'elite' | 'arca'
+  currentLeague?: 'trucks' | 'arca'
 }
 
 export default function Header({ currentLeague }: HeaderProps) {

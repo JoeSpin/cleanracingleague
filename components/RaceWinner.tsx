@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import styles from './RaceWinner.module.css'
 
 interface RaceWinnerProps {
-  league: 'trucks' | 'elite' | 'arca'
+  league: 'trucks' | 'arca'
 }
 
 interface RaceResult {

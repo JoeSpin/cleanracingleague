@@ -38,16 +38,6 @@ export default function Home() {
               />
             </div>
           </Link>
-          <Link href="/elite" className={styles.logoCard}>
-            <div className={styles.logoPlaceholder}>
-              <Image 
-                src="/img/crlelite.png" 
-                alt="CRL Elite" 
-                fill
-                style={{ objectFit: 'contain' }}
-              />
-            </div>
-          </Link>
         </div>
       </div>
     </div>
