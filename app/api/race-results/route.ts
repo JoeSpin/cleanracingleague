@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
+  console.log('=== RACE RESULTS API CALLED ==='); // Debug log
   try {
     const { searchParams } = new URL(request.url);
     const league = searchParams.get('league') || 'trucks';
@@ -14,28 +15,66 @@ export async function GET(request: NextRequest) {
     
     const seriesId = seriesConfig[league] || seriesConfig['trucks'];
     
-    // Use the correct season_race.php URL (singular, not plural)
-    const url = `https://www.simracerhub.com/scoring/season_race.php?series_id=${seriesId}`;
+    // Try multiple endpoints to get the most recent race data
+    const urlsToTry = [
+      `https://www.simracerhub.com/scoring/season_race.php?series_id=${seriesId}`,
+      `https://www.simracerhub.com/league.aspx?s=${seriesId}`,
+      `https://www.simracerhub.com/scoring/schedule.php?series_id=${seriesId}`
+    ];
     
-    const response = await fetch(url, {
-      next: { revalidate: 300 },
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    let html = '';
+    let url = '';
+    
+    // Try each URL until we get valid data
+    for (const tryUrl of urlsToTry) {
+      try {
+        console.log('Trying URL:', tryUrl); // Debug log
+        const response = await fetch(tryUrl, {
+          next: { revalidate: 300 },
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+
+        if (response.ok) {
+          html = await response.text();
+          url = tryUrl;
+          console.log('Successfully fetched from:', tryUrl); // Debug log
+          
+          // Check if this page has recent race data
+          if (html.includes('POS') || html.includes('Position') || html.includes('Results')) {
+            break;
+          }
+        }
+      } catch (error) {
+        console.log('Failed to fetch from:', tryUrl, error); // Debug log
+        continue;
       }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch race data: ${response.status}`);
     }
-
-    const html = await response.text();
+    
+    if (!html) {
+      throw new Error('Failed to fetch race data from any endpoint');
+    }
     
     // More flexible parsing approach - look for any race-related data
     console.log('Fetched HTML length:', html.length); // Debug log
+    console.log('URL fetched:', url); // Debug log
     
     // First try: Look for completed races in any table structure
     const allText = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
     console.log('Sample text:', allText.substring(0, 500)); // Debug log
+    
+    // Look for page title and race information
+    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+    if (titleMatch) {
+      console.log('Page title:', titleMatch[1]); // Debug log
+    }
+    
+    // Look for any date information on the page
+    const dateMatches = html.match(/\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{4}\b|\b[A-Z][a-z]+ \d{1,2}, \d{4}\b/g);
+    if (dateMatches) {
+      console.log('Found dates on page:', dateMatches.slice(0, 5)); // Debug log - first 5 dates
+    }
     
     // Look for track name in h3.heading-track-name element
     let foundTrack = null;
@@ -43,16 +82,139 @@ export async function GET(request: NextRequest) {
     let foundDate = null;
     
     // Extract track name from h3.heading-track-name
-    const trackHeadingRegex = /<h3[^>]*class="[^"]*heading-track-name[^"]*"[^>]*>([\s\S]*?)<\/h3>/gi;
+    const trackHeadingRegex = /<h3[^>]*class=['"][^'"]*heading-track-name[^'"]*['"][^>]*>([\s\S]*?)<\/h3>/gi;
     const trackMatch = trackHeadingRegex.exec(html);
     
     if (trackMatch) {
       foundTrack = trackMatch[1].replace(/<[^>]*>/g, '').trim();
       console.log('Found track from h3.heading-track-name:', foundTrack); // Debug log
-    } else {
-      console.log('No h3.heading-track-name found, falling back to track name list'); // Debug log
       
-      // Fallback: Look for track names anywhere in the content
+      // Now look for the date in div.track-meta
+      const trackMetaRegex = /<div[^>]*class=['"][^'"]*track-meta[^'"]*['"][^>]*>([\s\S]*?)<\/div>/gi;
+      const trackMetaMatch = trackMetaRegex.exec(html);
+      
+      if (trackMetaMatch) {
+        const trackMetaContent = trackMetaMatch[1];
+        console.log('Found track-meta content:', trackMetaContent.substring(0, 200)); // Debug log
+        
+        // Extract date from track-meta content
+        const dateMatch = trackMetaContent.match(/\b[A-Z][a-z]+ \d{1,2}, \d{4}\b|\b\d{1,2}\/\d{1,2}\/\d{4}\b|\b\d{4}-\d{2}-\d{2}\b/);
+        if (dateMatch) {
+          foundDate = dateMatch[0];
+          console.log('Found date from track-meta:', foundDate); // Debug log
+        }
+      }
+    } else {
+      // Debug: Log all h3 elements on the page to see what's available
+      const allH3s = html.match(/<h3[^>]*>[\s\S]*?<\/h3>/gi);
+      if (allH3s) {
+        console.log('Found H3 elements on page:', allH3s.slice(0, 3).map(h3 => h3.substring(0, 100) + '...')); // Debug log
+      }
+      
+      // Debug: Look for track-meta divs to see what's available
+      const trackMetaDivs = html.match(/<div[^>]*class=['"][^'"]*track-meta[^'"]*['"][^>]*>[\s\S]*?<\/div>/gi);
+      if (trackMetaDivs) {
+        console.log('Found track-meta divs:', trackMetaDivs.slice(0, 2).map(div => div.substring(0, 150) + '...')); // Debug log
+      }
+      
+      // Try alternative patterns for the track name element
+      const altTrackRegex = /<h3[^>]*class="[^"]*heading-track-name[^"]*"[^>]*>([\s\S]*?)<\/h3>/gi;
+      const altTrackMatch = altTrackRegex.exec(html);
+      
+      if (altTrackMatch) {
+        foundTrack = altTrackMatch[1].replace(/<[^>]*>/g, '').trim();
+        console.log('Found track from alternative h3.heading-track-name pattern:', foundTrack); // Debug log
+      } else {
+        console.log('No h3.heading-track-name found, checking page structure'); // Debug log
+        
+        // For leagues without h3.heading-track-name, try to get date from track-meta
+        const trackMetaRegex = /<div[^>]*class=['"][^'"]*track-meta[^'"]*['"][^>]*>([\s\S]*?)<\/div>/gi;
+        const trackMetaMatch = trackMetaRegex.exec(html);
+        
+        if (trackMetaMatch) {
+          const trackMetaContent = trackMetaMatch[1];
+          console.log('Found track-meta content (no h3):', trackMetaContent.substring(0, 200)); // Debug log
+          
+          // Extract date from track-meta content
+          const dateMatch = trackMetaContent.match(/\b[A-Z][a-z]+ \d{1,2}, \d{4}\b|\b\d{1,2}\/\d{1,2}\/\d{4}\b|\b\d{4}-\d{2}-\d{2}\b/);
+          if (dateMatch) {
+            foundDate = dateMatch[0];
+            console.log('Found date from track-meta (no h3):', foundDate); // Debug log
+          }
+        }
+        
+        // Try to find track name from page title or other sources
+        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+        if (titleMatch) {
+          const titleText = titleMatch[1].replace(/Sim Racer Hub:|Race Results/gi, '').trim();
+          console.log('Page title for track extraction:', titleText); // Debug log
+          
+          // Look for track name patterns in title
+          const trackInTitle = titleText.match(/([A-Z][a-z]+ )*[A-Z][a-z]+ (Motor Speedway|Speedway|Raceway|International|Circuit)/);
+          if (trackInTitle) {
+            foundTrack = trackInTitle[0];
+            console.log('Found track from page title:', foundTrack); // Debug log
+          }
+        }
+        
+        // Try to find track name in breadcrumb or navigation elements
+        const breadcrumbMatch = html.match(/<nav[^>]*class="[^"]*breadcrumb[^"]*"[^>]*>([\s\S]*?)<\/nav>/gi);
+        if (breadcrumbMatch && !foundTrack) {
+          console.log('Found breadcrumb, analyzing for track name...'); // Debug log
+          for (const breadcrumb of breadcrumbMatch) {
+            const trackInBreadcrumb = breadcrumb.match(/([A-Z][a-z]+ )*[A-Z][a-z]+ (Motor )?Speedway|Raceway|International/);
+            if (trackInBreadcrumb) {
+              foundTrack = trackInBreadcrumb[0];
+              console.log('Found track in breadcrumb:', foundTrack); // Debug log
+              break;
+            }
+          }
+        }
+        
+        // Try to find track name in heading or container elements
+        const headingMatches = html.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi);
+        if (headingMatches && !foundTrack) {
+          console.log('Searching headings for track names...'); // Debug log
+          for (const heading of headingMatches) {
+            const headingText = heading.replace(/<[^>]*>/g, '').trim();
+            const trackInHeading = headingText.match(/^([A-Z][a-z]+ )*[A-Z][a-z]+ (Motor )?Speedway$|^([A-Z][a-z]+ )*[A-Z][a-z]+ Raceway$|^([A-Z][a-z]+ )*[A-Z][a-z]+ International$/);
+            if (trackInHeading && headingText.length < 50) { // Avoid overly long headings
+              foundTrack = headingText;
+              console.log('Found track in heading:', foundTrack); // Debug log
+              break;
+            }
+          }
+        }
+        
+        // Try to find track name in span or div elements with specific classes
+        const trackSpanMatch = html.match(/<(?:span|div)[^>]*class="[^"]*track[^"]*"[^>]*>([\s\S]*?)<\/(?:span|div)>/gi);
+        if (trackSpanMatch && !foundTrack) {
+          console.log('Searching track-related elements...'); // Debug log
+          for (const trackElement of trackSpanMatch) {
+            const trackText = trackElement.replace(/<[^>]*>/g, '').trim();
+            const trackMatch = trackText.match(/^([A-Z][a-z]+ )*[A-Z][a-z]+ (Motor )?Speedway$|^([A-Z][a-z]+ )*[A-Z][a-z]+ Raceway$|^([A-Z][a-z]+ )*[A-Z][a-z]+ International$/);
+            if (trackMatch && trackText.length < 50) {
+              foundTrack = trackText;
+              console.log('Found track in track element:', foundTrack); // Debug log
+              break;
+            }
+          }
+        }
+        
+        // Look for schedule information or race structure
+        const scheduleMatch = html.match(/<div[^>]*class="[^"]*schedule[^"]*"[^>]*>([\s\S]*?)<\/div>/gi);
+        if (scheduleMatch) {
+          console.log('Found schedule section, analyzing...'); // Debug log
+          // Try to find the most recent completed race
+          for (const scheduleSection of scheduleMatch) {
+            const trackInSchedule = scheduleSection.match(/([A-Z][a-z]+ )*[A-Z][a-z]+ (Motor )?Speedway|Raceway|International/);
+            if (trackInSchedule) {
+              console.log('Found track in schedule:', trackInSchedule[0]); // Debug log
+            }
+          }
+        }
+        
+        // Fallback: Look for track names anywhere in the content
       const trackNames = [
         'Texas Motor Speedway', 'Talladega Superspeedway', 'Daytona International Speedway',
         'Charlotte Motor Speedway', 'Atlanta Motor Speedway', 'Las Vegas Motor Speedway',
@@ -64,12 +226,21 @@ export async function GET(request: NextRequest) {
         'Iowa Speedway', 'Gateway Motorsports Park', 'Mid-Ohio Sports Car Course'
       ];
       
+      console.log('Searching for track names in HTML content...'); // Debug log
       for (const track of trackNames) {
         if (html.includes(track)) {
           foundTrack = track;
           console.log('Found track from fallback list:', track); // Debug log
+          
+          // Get some context around where this track name was found
+          const trackIndex = html.indexOf(track);
+          const contextStart = Math.max(0, trackIndex - 100);
+          const contextEnd = Math.min(html.length, trackIndex + track.length + 100);
+          const context = html.substring(contextStart, contextEnd);
+          console.log('Track name context:', context.replace(/\s+/g, ' ')); // Debug log
           break;
         }
+      }
       }
     }
     
