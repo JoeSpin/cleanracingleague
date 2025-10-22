@@ -5,11 +5,6 @@ import styles from './Sponsors.module.css'
 export default function Sponsors() {
   const sponsors = [
     {
-      name: 'Apex Mountain Apparrel',
-      image: '/img/sponsors/Sponsor1.png',
-      link: 'https://apexmountainapparel.com/'
-    },
-    {
       name: 'Ghost Athletics',
       image: '/img/sponsors/Sponsor2.png',
       link: '#'
