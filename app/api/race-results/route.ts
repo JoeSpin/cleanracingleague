@@ -186,6 +186,15 @@ export async function GET(request: NextRequest) {
           }
         }
         
+        // Try to find track name in span.track-name element specifically
+        const trackNameSpanRegex = /<span[^>]*class=['"][^'"]*track-name[^'"]*['"][^>]*>([\s\S]*?)<\/span>/gi;
+        const trackNameSpanMatch = trackNameSpanRegex.exec(html);
+        
+        if (trackNameSpanMatch && !foundTrack) {
+          foundTrack = trackNameSpanMatch[1].replace(/<[^>]*>/g, '').trim();
+          console.log('Found track from span.track-name:', foundTrack); // Debug log
+        }
+        
         // Try to find track name in span or div elements with specific classes
         const trackSpanMatch = html.match(/<(?:span|div)[^>]*class="[^"]*track[^"]*"[^>]*>([\s\S]*?)<\/(?:span|div)>/gi);
         if (trackSpanMatch && !foundTrack) {
@@ -214,33 +223,35 @@ export async function GET(request: NextRequest) {
           }
         }
         
-        // Fallback: Look for track names anywhere in the content
-      const trackNames = [
-        'Texas Motor Speedway', 'Talladega Superspeedway', 'Daytona International Speedway',
-        'Charlotte Motor Speedway', 'Atlanta Motor Speedway', 'Las Vegas Motor Speedway',
-        'Phoenix Raceway', 'Homestead-Miami Speedway', 'Kansas Speedway', 'Kentucky Speedway',
-        'Michigan International Speedway', 'Auto Club Speedway', 'Indianapolis Motor Speedway',
-        'Pocono Raceway', 'New Hampshire Motor Speedway', 'Dover International Speedway',
-        'Martinsville Speedway', 'Richmond Raceway', 'Bristol Motor Speedway', 'Darlington Raceway',
-        'Watkins Glen International', 'Sonoma Raceway', 'Road America', 'Chicagoland Speedway',
-        'Iowa Speedway', 'Gateway Motorsports Park', 'Mid-Ohio Sports Car Course'
-      ];
-      
-      console.log('Searching for track names in HTML content...'); // Debug log
-      for (const track of trackNames) {
-        if (html.includes(track)) {
-          foundTrack = track;
-          console.log('Found track from fallback list:', track); // Debug log
+        // Fallback: Look for track names anywhere in the content (only if no track found yet)
+        if (!foundTrack) {
+          const trackNames = [
+            'Texas Motor Speedway', 'Talladega Superspeedway', 'Daytona International Speedway',
+            'Charlotte Motor Speedway', 'Atlanta Motor Speedway', 'Las Vegas Motor Speedway',
+            'Phoenix Raceway', 'Homestead-Miami Speedway', 'Kansas Speedway', 'Kentucky Speedway',
+            'Michigan International Speedway', 'Auto Club Speedway', 'Indianapolis Motor Speedway',
+            'Pocono Raceway', 'New Hampshire Motor Speedway', 'Dover International Speedway',
+            'Martinsville Speedway', 'Richmond Raceway', 'Bristol Motor Speedway', 'Darlington Raceway',
+            'Watkins Glen International', 'Sonoma Raceway', 'Road America', 'Chicagoland Speedway',
+            'Iowa Speedway', 'Gateway Motorsports Park', 'Mid-Ohio Sports Car Course'
+          ];
           
-          // Get some context around where this track name was found
-          const trackIndex = html.indexOf(track);
-          const contextStart = Math.max(0, trackIndex - 100);
-          const contextEnd = Math.min(html.length, trackIndex + track.length + 100);
-          const context = html.substring(contextStart, contextEnd);
-          console.log('Track name context:', context.replace(/\s+/g, ' ')); // Debug log
-          break;
+          console.log('Searching for track names in HTML content...'); // Debug log
+          for (const track of trackNames) {
+            if (html.includes(track)) {
+              foundTrack = track;
+              console.log('Found track from fallback list:', track); // Debug log
+              
+              // Get some context around where this track name was found
+              const trackIndex = html.indexOf(track);
+              const contextStart = Math.max(0, trackIndex - 100);
+              const contextEnd = Math.min(html.length, trackIndex + track.length + 100);
+              const context = html.substring(contextStart, contextEnd);
+              console.log('Track name context:', context.replace(/\s+/g, ' ')); // Debug log
+              break;
+            }
+          }
         }
-      }
       }
     }
     
