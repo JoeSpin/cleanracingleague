@@ -18,6 +18,11 @@ export default function Sponsors() {
       name: 'CRL Podcast',
       image: '/img/sponsors/Sponsor4.png',
       link: 'https://open.spotify.com/show/55Kay8QF98WIDWnBc94tdu?si=AwYsCpzCQX2WK8yUCol61g&nd=1&dlsi=643597b2fc794e61'
+    },
+    {
+      name: 'Savage Sim Wraps',
+      image: '/img/sponsors/Sponsor1.png',
+      link: 'https://discord.gg/k34hEpGyNd'
     }
   ]
 

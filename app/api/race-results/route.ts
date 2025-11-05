@@ -304,6 +304,7 @@ export async function GET(request: NextRequest) {
               // Check if this is the first position (winner)
               if (positionCell === '1') {
                 console.log('Found POS 1 row:', rowCells); // Debug log
+                console.log('Current track found:', foundTrack, 'Date found:', foundDate); // Debug log
                 
                 // Look for the driver name in the subsequent cells
                 for (let i = 1; i < rowCells.length && i < 6; i++) { // Check first 5 cells after position
@@ -313,7 +314,7 @@ export async function GET(request: NextRequest) {
                   if (cell && 
                       cell.length > 3 && 
                       cell.length < 50 &&
-                      /^[A-Za-z\s\-\.]+$/.test(cell) && // letters, spaces, hyphens, dots
+                      /^[A-Za-z][A-Za-z\s\-\.0-9]*$/.test(cell) && // letters, spaces, hyphens, dots, numbers (must start with letter)
                       !cell.includes('Speedway') &&
                       !cell.includes('Raceway') &&
                       !cell.includes('International') &&
@@ -326,7 +327,8 @@ export async function GET(request: NextRequest) {
                       !cell.includes('laps') &&
                       !cell.includes('DNF') &&
                       !cell.includes('DNS') &&
-                      cell.split(' ').length >= 2 // first and last name
+                      !cell.includes('Class') && // exclude class designations
+                      cell.split(' ').length >= 1 // at least one word
                   ) {
                     foundWinner = cell;
                     console.log('Found winner in POS 1 row:', cell); // Debug log
