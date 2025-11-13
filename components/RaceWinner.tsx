@@ -12,6 +12,7 @@ interface RaceResult {
   track: string
   date: string
   resultsUrl?: string
+  profileUrl?: string
 }
 
 interface RaceResultsResponse {
@@ -43,10 +44,16 @@ export default function RaceWinner({ league }: RaceWinnerProps) {
         // Handle both old and new API formats
         if (data.latestWinner) {
           // New CSV format
+          const resultsUrl = league === 'trucks' 
+            ? 'https://www.simracerhub.com/season_race.php?series_id=10554'
+            : undefined;
+            
           setRaceResult({
             winner: data.latestWinner.driver,
             track: data.latestWinner.track,
-            date: data.latestWinner.date
+            date: data.latestWinner.date,
+            profileUrl: data.latestWinner.profileUrl,
+            resultsUrl: resultsUrl
           })
         } else if (data.result) {
           // Old format
@@ -108,7 +115,20 @@ export default function RaceWinner({ league }: RaceWinnerProps) {
         )}
         <div className={styles.winnerInfo}>
           <div className={styles.winnerDetails}>
-            <div className={styles.winnerName}>{raceResult.winner}</div>
+            <div className={styles.winnerName}>
+              {raceResult.profileUrl ? (
+                <a 
+                  href={raceResult.profileUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={styles.profileLink}
+                >
+                  {raceResult.winner}
+                </a>
+              ) : (
+                raceResult.winner
+              )}
+            </div>
             <div className={styles.trackName}>{raceResult.track}</div>
             <div className={styles.raceDate}>{raceResult.date}</div>
           </div>

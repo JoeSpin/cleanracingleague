@@ -60,6 +60,19 @@
   font-family: "League Spartan", sans-serif;
 }
 
+.profileLink {
+  color: var(--crl-gold);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.profileLink:hover {
+  color: #e6c200;
+  border-bottom-color: var(--crl-gold);
+  text-shadow: 0 0 8px rgba(255, 212, 0, 0.4);
+}
+
 .trackName {
   font-size: 1.2rem;
   font-weight: 600;

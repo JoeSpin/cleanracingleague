@@ -13,6 +13,7 @@ export interface RaceWinner {
   lapsLed: number;
   margin: string;
   fastestLap?: string;
+  profileUrl?: string;
 }
 
 export interface DriverSeasonStats {
