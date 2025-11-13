@@ -274,7 +274,7 @@ function parseStandingsTables(html: string, seriesId: string): { drivers: Standi
   return { drivers, teams }
 }
 
-export async function GET(request: NextRequest) {
+// Force dynamic rendering for this API route\nexport const dynamic = 'force-dynamic';\n\nexport async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
   const league = searchParams.get('league') as keyof typeof SERIES_CONFIG
 

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSeasonSummary, getAllAvailableSeasons } from '@/lib/race-data/storage';
+import { getSeasonSummary, listAvailableSeasons } from '@/lib/race-data/storage';
+
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +12,7 @@ export async function GET(request: NextRequest) {
     
     // If no specific series/season requested, list available options
     if (!series || !season) {
-      const available = await getAllAvailableSeasons();
+      const available = await listAvailableSeasons();
       return NextResponse.json({
         available,
         message: 'Specify ?series=<series>&season=<season> to get season summary'

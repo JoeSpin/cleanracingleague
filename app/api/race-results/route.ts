@@ -1,6 +1,9 @@
 ﻿import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   console.log('=== RACE RESULTS API CALLED ==='); // Debug log
   try {
