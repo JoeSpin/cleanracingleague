@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import styles from './StandingsTable.module.css'
 import { calculatePlayoffStandings, getPlayoffRoundInfo, type PlayoffDriver } from '../lib/playoff-logic'
-import { PLAYOFF_CONFIG, getPlayoffTitle } from '../lib/playoff-config'
+import { PLAYOFF_CONFIG, getPlayoffTitle, getRaceNumberFromPlayoffRound } from '../lib/playoff-config'
 
 interface StandingsTableProps {
   league: 'trucks' | 'arca'
@@ -45,10 +45,15 @@ interface Team {
 }
 
 interface StandingsResponse {
-  drivers: Driver[]
+  drivers?: Driver[] // Old format
   teams?: Team[]
+  standings?: any[] // New CSV format
+  totalRaces?: number // Total races in season
+  completedRaces?: number // Races completed so far
+  currentRace?: number // Current race number
+  isPlayoffSeason?: boolean // Whether playoffs have started
+  currentPlayoffRound?: string // Current playoff round
   lastUpdated: string
-  currentRace?: number
 }
 
 export default function StandingsTable({ league }: StandingsTableProps) {
@@ -59,11 +64,85 @@ export default function StandingsTable({ league }: StandingsTableProps) {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [currentRace, setCurrentRace] = useState<number>(PLAYOFF_CONFIG.currentRace)
+  const [currentPlayoffRound, setCurrentPlayoffRound] = useState<string>('regular')
+  const [totalRaces, setTotalRaces] = useState<number>(0)
+  const [completedRaces, setCompletedRaces] = useState<number>(0)
   const [activeTab, setActiveTab] = useState<'drivers' | 'teams' | 'playoffs'>('drivers')
   const [sortConfig, setSortConfig] = useState<{
     key: string
     direction: 'asc' | 'desc'
   } | null>(null)
+
+  // Function to download table as screenshot
+  const downloadScreenshot = async (tableId: string, filename: string) => {
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const table = document.getElementById(tableId);
+      if (!table) return;
+      
+      // Find the container that includes both title and table
+      const titleContainer = table.previousElementSibling as HTMLElement;
+      if (!titleContainer) return;
+      
+      // Hide all download buttons during screenshot
+      const downloadButtons = document.querySelectorAll(`.${styles.downloadButton}`);
+      downloadButtons.forEach(btn => {
+        (btn as HTMLElement).style.display = 'none';
+      });
+      
+      // Create a temporary wrapper with title and table
+      const wrapper = document.createElement('div');
+      wrapper.style.background = '#1a1a1a';
+      wrapper.style.padding = '20px';
+      wrapper.style.borderRadius = '8px';
+      wrapper.style.fontFamily = '"League Spartan", sans-serif';
+      
+      // Clone title (without download button) and table
+      const titleClone = titleContainer.cloneNode(true) as HTMLElement;
+      const downloadBtn = titleClone.querySelector(`.${styles.downloadButton}`);
+      if (downloadBtn) {
+        downloadBtn.remove();
+      }
+      
+      const tableClone = table.cloneNode(true) as HTMLElement;
+      
+      wrapper.appendChild(titleClone);
+      wrapper.appendChild(tableClone);
+      document.body.appendChild(wrapper);
+      
+      const canvas = await html2canvas(wrapper, {
+        backgroundColor: '#1a1a1a',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: 0
+      } as any);
+      
+      // Clean up
+      document.body.removeChild(wrapper);
+      
+      // Restore download buttons
+      downloadButtons.forEach(btn => {
+        (btn as HTMLElement).style.display = 'flex';
+      });
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `${filename}-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Error generating screenshot:', error);
+      alert('Error generating screenshot. Please try again.');
+      
+      // Restore download buttons in case of error
+      const downloadButtons = document.querySelectorAll(`.${styles.downloadButton}`);
+      downloadButtons.forEach(btn => {
+        (btn as HTMLElement).style.display = 'flex';
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchStandings = async () => {
@@ -71,7 +150,7 @@ export default function StandingsTable({ league }: StandingsTableProps) {
         setLoading(true)
         setError(null)
         
-        const response = await fetch(`/api/standings?league=${league}`)
+        const response = await fetch(`/api/standings-csv?series=${league === 'trucks' ? 'Truck' : 'ARCA'}&season=${league === 'trucks' ? 'CRL Truck Series Season 24' : '2024'}`)
         
         if (!response.ok) {
           throw new Error('Failed to fetch standings')
@@ -79,17 +158,89 @@ export default function StandingsTable({ league }: StandingsTableProps) {
         
         const data: StandingsResponse = await response.json()
         
-        setDrivers(data.drivers || [])
-        setTeams(data.teams || [])
+        // Map CSV standings format to component format
+        const mappedDrivers = (data.standings || []).map((standing: any, index: number) => ({
+          position: index + 1, // Position based on sort order
+          change: standing.positionChange || '',
+          name: standing.driver,
+          points: standing.totalPoints,
+          behindLeader: index === 0 ? '-' : `-${(data.standings?.[0]?.totalPoints || 0) - standing.totalPoints}`,
+          starts: standing.races || 0, // Number of races started
+          wins: standing.wins,
+          top5: standing.top5s,
+          top10: standing.top10s,
+          laps: standing.totalLapsLed,
+          incidents: standing.totalIncidents
+        }));
+        
+        setDrivers(mappedDrivers)
+        setTeams([]) // Teams not implemented in CSV format yet
         setLastUpdated(data.lastUpdated)
+        setTotalRaces(data.totalRaces || 0)
+        setCompletedRaces(data.completedRaces || 0)
         
-        // Use race number from API if available, otherwise fall back to config
-        const raceNumber = data.currentRace || PLAYOFF_CONFIG.currentRace
+        // Use current race from API, playoff round, or fall back to completed races
+        let raceNumber = data.currentRace || data.completedRaces || PLAYOFF_CONFIG.currentRace
+        
+        // If we have playoff round data but no specific race number, derive it from the round
+        if (data.currentPlayoffRound && !data.currentRace) {
+          raceNumber = getRaceNumberFromPlayoffRound(data.currentPlayoffRound)
+        }
+        
         setCurrentRace(raceNumber)
+        setCurrentPlayoffRound(data.currentPlayoffRound || 'regular')
         
-        // Calculate playoff standings only for trucks league
-        if (league === 'trucks' && data.drivers && data.drivers.length > 0) {
-          const playoff = calculatePlayoffStandings(data.drivers, raceNumber)
+        // Handle playoff standings for trucks league
+        if (league === 'trucks' && mappedDrivers.length > 0) {
+          let playoff: PlayoffDriver[];
+          
+          // If we have uploaded playoff standings, use them directly
+          if (data.isPlayoffSeason && data.currentPlayoffRound !== 'regular') {
+            // Convert uploaded playoff data to PlayoffDriver format
+            playoff = mappedDrivers.map((driver, index) => ({
+              ...driver,
+              playoffStatus: 'IN' as const, // Will be determined by cutoff logic
+              playoffPoints: '+0', // Will be calculated based on position
+              isAboveCutoff: true // Will be determined by cutoff logic
+            }));
+            
+            // Determine cutoff based on current playoff round
+            const roundConfig = PLAYOFF_CONFIG.rounds[data.currentPlayoffRound as keyof typeof PLAYOFF_CONFIG.rounds];
+            const cutoffPosition = roundConfig.cutoff;
+            
+            // Get the points of the driver at the cutoff line (last driver to advance)
+            const cutoffDriverPoints = playoff[cutoffPosition - 1]?.points || 0;
+            
+            // Update playoff status and points based on points differential from cutoff
+            playoff.forEach((driver, index) => {
+              const pointsDiff = driver.points - cutoffDriverPoints;
+              
+              if (index < cutoffPosition) {
+                driver.isAboveCutoff = true;
+                driver.playoffStatus = 'IN';
+                if (index === 0) {
+                  driver.playoffPoints = 'LEADER';
+                } else if (pointsDiff > 0) {
+                  driver.playoffPoints = `+${pointsDiff}`;
+                } else {
+                  driver.playoffPoints = '0';
+                }
+              } else {
+                driver.isAboveCutoff = false;
+                driver.playoffStatus = 'OUT';
+                driver.playoffPoints = pointsDiff < 0 ? `${pointsDiff}` : '0';
+              }
+            });
+            
+            // Limit to appropriate number based on playoff round
+            const roundDisplayCount = roundConfig.displayCount;
+            playoff = playoff.slice(0, roundDisplayCount);
+          } else {
+            // Calculate playoff standings from regular season data
+            const roundWinners: string[] = [] // Should be populated from playoff standings metadata
+            playoff = calculatePlayoffStandings(mappedDrivers, raceNumber, roundWinners);
+          }
+          
           setPlayoffDrivers(playoff)
         }
         
@@ -237,15 +388,22 @@ export default function StandingsTable({ league }: StandingsTableProps) {
         </div>
       )}
 
-      {activeTab === 'playoffs' && league === 'trucks' && (
-        <div className={styles.playoffHeader}>
-          <h3>{getPlayoffTitle(currentRace)}</h3>
-        </div>
-      )}
+
 
       <div className={styles.tableContainer}>
         {activeTab === 'drivers' ? (
-          <table className={styles.standingsTable} id="driver_table">
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0, color: 'var(--crl-gold)' }}>Current Standings</h3>
+              <button 
+                onClick={() => downloadScreenshot('driver_table', 'current-standings')}
+                className={styles.downloadButton}
+                title="Download standings as image"
+              >
+                📸 Download
+              </button>
+            </div>
+            <table className={styles.standingsTable} id="driver_table">
             <thead>
               <tr>
                 <th onClick={() => handleSort('position')}>Pos{getSortIndicator('position')}</th>
@@ -291,9 +449,21 @@ export default function StandingsTable({ league }: StandingsTableProps) {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </>
         ) : activeTab === 'playoffs' && league === 'trucks' ? (
-          <table className={styles.standingsTable} id="playoff_table">
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0, color: 'var(--crl-gold)' }}>{getPlayoffTitle(currentRace)}</h3>
+              <button 
+                onClick={() => downloadScreenshot('playoff_table', 'playoff-standings')}
+                className={styles.downloadButton}
+                title="Download playoff standings as image"
+              >
+                📸 Download
+              </button>
+            </div>
+            <table className={styles.standingsTable} id="playoff_table">
             <thead>
               <tr>
                 <th>Pos</th>
@@ -307,8 +477,16 @@ export default function StandingsTable({ league }: StandingsTableProps) {
             </thead>
             <tbody>
               {playoffDrivers.map((driver, index) => {
-                const roundInfo = getPlayoffRoundInfo(currentRace);
+                // Use current playoff round data for cutoff calculation
+                const roundInfo = currentPlayoffRound !== 'regular' 
+                  ? PLAYOFF_CONFIG.rounds[currentPlayoffRound as keyof typeof PLAYOFF_CONFIG.rounds]
+                  : getPlayoffRoundInfo(currentRace);
                 const isCutoffLine = index === roundInfo.cutoff - 1;
+                
+                // Debug logging
+                if (index === 0) {
+                  console.log('Playoff Debug:', { currentPlayoffRound, currentRace, roundInfo, totalDrivers: playoffDrivers.length });
+                }
                 
                 return (
                   <React.Fragment key={driver.name}>
@@ -354,7 +532,8 @@ export default function StandingsTable({ league }: StandingsTableProps) {
                 )
               })}
             </tbody>
-          </table>
+            </table>
+          </>
         ) : LEAGUE_CONFIG[league].includeTeams ? (
           <table className={styles.standingsTable} id="team_table">
             <thead>

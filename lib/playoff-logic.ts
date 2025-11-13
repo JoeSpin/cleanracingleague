@@ -21,16 +21,22 @@ export interface PlayoffDriver extends Driver {
   isAboveCutoff: boolean;
 }
 
-// Mock function to identify race winners - this should be enhanced to track actual winners
-function getRaceWinners(drivers: Driver[]): string[] {
-  // For now, we'll consider any driver with wins as having advanced
-  // This should be enhanced to track specific race winners by race number
-  return drivers.filter(d => d.wins > 0).map(d => d.name);
+// Function to identify drivers who won races in the current playoff round
+function getCurrentRoundWinners(drivers: Driver[], raceNumber: number, roundWinners: string[] = []): string[] {
+  // roundWinners should be passed from the playoff standings data
+  // It contains drivers who won races specifically during this playoff round
+  // 
+  // IMPORTANT: For accurate playoff advancement, you need to specify which drivers
+  // won races during the CURRENT playoff round, not their total season wins.
+  // 
+  // TODO: Enhance admin interface to allow specifying round winners when uploading playoff standings
+  return roundWinners;
 }
 
 export function calculatePlayoffStandings(
   drivers: Driver[], 
-  raceNumber: number = PLAYOFF_CONFIG.currentRace
+  raceNumber: number = PLAYOFF_CONFIG.currentRace,
+  currentRoundWinners: string[] = []
 ): PlayoffDriver[] {
   const currentRound = getCurrentPlayoffRound(raceNumber);
   const roundConfig = PLAYOFF_CONFIG.rounds[currentRound];
@@ -38,7 +44,7 @@ export function calculatePlayoffStandings(
   // Filter for playoff eligible drivers only
   const eligibleDrivers = getPlayoffEligibleDrivers(drivers, raceNumber);
   
-  const winners = getRaceWinners(eligibleDrivers);
+  const winners = getCurrentRoundWinners(eligibleDrivers, raceNumber, currentRoundWinners);
   
   // Sort drivers: winners first (by wins desc), then by points desc
   const sortedDrivers = [...eligibleDrivers].sort((a, b) => {

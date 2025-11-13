@@ -1,0 +1,429 @@
+/* Password Protection Styles */
+.passwordContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--background);
+  padding: 20px;
+}
+
+.passwordForm {
+  background: var(--surface);
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 212, 0, 0.2);
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.passwordForm h1 {
+  color: var(--crl-gold) !important;
+  margin-bottom: 30px;
+  font-size: 2rem;
+}
+
+.inputGroup {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--crl-gold);
+  font-weight: 600;
+}
+
+.passwordInput {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid rgba(255, 212, 0, 0.3);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.passwordInput:focus {
+  outline: none;
+  border-color: var(--crl-gold);
+  box-shadow: 0 0 0 3px rgba(255, 212, 0, 0.1);
+}
+
+.loginButton {
+  width: 100%;
+  padding: 12px;
+  background: var(--crl-gold);
+  color: var(--background);
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.loginButton:hover {
+  background: #e6c200;
+  transform: translateY(-1px);
+}
+
+.error {
+  color: var(--crl-red);
+  margin-bottom: 15px;
+  padding: 10px;
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* Existing Admin Styles */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: system-ui, sans-serif;
+}
+
+.container h1 {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: #333;
+}
+
+.uploadSection {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 3rem;
+}
+
+.uploadSection h2 {
+  margin-top: 0;
+  color: #495057;
+}
+
+.uploadSection p {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.uploadForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fileInput {
+  padding: 0.5rem;
+  border: 2px dashed #dee2e6;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.fileInput:hover {
+  border-color: #007bff;
+}
+
+.fileInfo {
+  background: #e3f2fd;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid #2196f3;
+}
+
+.fileInfo p {
+  margin: 0.25rem 0;
+  color: #1565c0;
+}
+
+.uploadButton {
+  align-self: flex-start;
+  padding: 0.75rem 1.5rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.uploadButton:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.uploadButton:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.error {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.error h3 {
+  margin: 0 0 0.5rem 0;
+  color: #721c24;
+}
+
+.error p {
+  margin: 0;
+  color: #721c24;
+}
+
+.success {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.success h3 {
+  margin: 0 0 1rem 0;
+  color: #155724;
+}
+
+.resultDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.resultDetails p {
+  margin: 0;
+  color: #155724;
+  font-size: 0.9rem;
+}
+
+.apiSection {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.apiSection h2 {
+  margin-top: 0;
+  color: #495057;
+}
+
+.endpointList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.endpoint {
+  background: white;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid #28a745;
+}
+
+.endpoint strong {
+  display: block;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.endpoint code {
+  background: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: #e83e8c;
+  word-break: break-all;
+}
+
+.optionalField {
+  margin: 1rem 0;
+}
+
+.fieldLabel {
+  display: block;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.textInput {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.textInput:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.fieldHelp {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.filesSection {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 3rem;
+}
+
+.filesSection h2 {
+  margin-top: 0;
+  color: #495057;
+}
+
+.filesSection p {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.refreshButton {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+}
+
+.refreshButton:hover {
+  background: #218838;
+}
+
+.refreshButton:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.filesList {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.fileGroup {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 1.5rem;
+}
+
+.fileGroup h3 {
+  margin: 0 0 1rem 0;
+  color: #343a40;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.fileCategory {
+  margin-bottom: 1.5rem;
+}
+
+.fileCategory h4 {
+  margin: 0 0 1rem 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.fileItem {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fileInfo strong {
+  color: #343a40;
+  font-size: 0.95rem;
+}
+
+.fileInfo span {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.deleteButton {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.deleteButton:hover {
+  background: #c82333;
+}
+
+.noFiles {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 2rem;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .uploadSection,
+  .apiSection,
+  .filesSection {
+    padding: 1rem;
+  }
+  
+  .resultDetails,
+  .fileGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .fileItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}

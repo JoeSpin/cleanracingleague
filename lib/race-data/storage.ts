@@ -1,0 +1,710 @@
+import fs from 'fs/promises';
+import path from 'path';
+import { RaceData, DriverStanding, calculateSeasonStandings, PlayoffStandingsData } from './csv-parser';
+import { PLAYOFF_CONFIG } from '../playoff-config';
+
+const DATA_DIR = path.join(process.cwd(), 'data');
+
+export interface RaceWinner {
+  driver: string;
+  track: string;
+  date: string;
+  raceNumber?: number;
+  lapsLed: number;
+  margin: string;
+  fastestLap?: string;
+}
+
+export interface DriverSeasonStats {
+  driver: string;
+  totalPoints: number;
+  wins: number;
+  poles: number;
+  top5s: number;
+  top10s: number;
+  dnfs: number;
+  races: number;
+  averageFinish: number;
+  averageStart: number;
+  totalLapsLed: number;
+  totalIncidents: number;
+  fastestLaps: number;
+  stageWins: number;
+  totalStagePoints: number;
+  totalBonusPoints: number;
+  totalPenaltyPoints: number;
+  bestFinish: number;
+  worstFinish: number;
+  currentStreak: string; // "3 wins", "2 top 5s", etc.
+  lastRaceFinish: number;
+  lastRaceTrack: string;
+  positionChange: string; // Track position change from previous race
+}
+
+export interface SeasonSummary {
+  series: string;
+  season: string;
+  totalRaces: number;
+  completedRaces: number;
+  currentStandings: DriverSeasonStats[];
+  raceWinners: RaceWinner[];
+  lastUpdated: string;
+  currentRace: number; // Current race number
+  isPlayoffSeason: boolean; // Whether playoffs have started
+  currentPlayoffRound: 'regular' | 'round1' | 'round2' | 'championship'; // Current playoff round
+  seasonStats: {
+    totalDrivers: number;
+    averageLapsPerRace: number;
+    totalIncidents: number;
+    averageCautions: number;
+    mostWins: { driver: string; wins: number };
+    mostPoles: { driver: string; poles: number };
+    mostLapsLed: { driver: string; laps: number };
+  };
+}
+
+export interface SeasonData {
+  series: string;
+  season: string;
+  races: RaceData[];
+  lastUpdated: string;
+}
+
+export async function savePlayoffStandingsData(playoffData: PlayoffStandingsData): Promise<void> {
+  // Ensure data directory exists
+  await ensureDataDirectory();
+  
+  console.log('savePlayoffStandingsData called with:', {
+    hasMetadata: !!playoffData.metadata,
+    metadata: playoffData.metadata,
+    standingsCount: playoffData.standings?.length || 0
+  });
+  
+  if (!playoffData.metadata || !playoffData.metadata.series || !playoffData.metadata.season) {
+    throw new Error(`Invalid playoff data: missing metadata. Got: ${JSON.stringify(playoffData.metadata)}`);
+  }
+  
+  const series = playoffData.metadata.series.toLowerCase().replace(/\s+/g, '-');
+  const season = playoffData.metadata.season.toLowerCase().replace(/\s+/g, '-');
+  const seriesDir = path.join(DATA_DIR, series);
+  const seasonFile = path.join(seriesDir, `${season}.json`);
+  
+  // Ensure series directory exists
+  try {
+    await fs.mkdir(seriesDir, { recursive: true });
+  } catch (error) {
+    // Directory might already exist
+  }
+  
+  // Load existing season data
+  let seasonData: SeasonData;
+  console.log('Looking for season file:', seasonFile);
+  try {
+    const existingData = await fs.readFile(seasonFile, 'utf-8');
+    seasonData = JSON.parse(existingData);
+    console.log('Loaded season data, races count:', seasonData.races?.length || 0);
+  } catch (error) {
+    console.log('Failed to load season data:', error);
+    throw new Error(`No existing season data found for ${playoffData.metadata.series} ${playoffData.metadata.season}. Please upload race data first.`);
+  }
+  
+  // Update playoff standings in the season summary
+  // This will recalculate the summary with playoff-adjusted standings
+  console.log('Calling calculateSeasonSummary with:', {
+    racesCount: seasonData.races?.length || 0,
+    series: playoffData.metadata.series,
+    season: playoffData.metadata.season
+  });
+  const summary = await calculateSeasonSummary(seasonData.races, playoffData.metadata.series, playoffData.metadata.season);
+  
+  // Apply playoff standings adjustments - ADD playoff points to existing season totals
+  const updatedStandings = summary.currentStandings.map(driver => {
+    const playoffStanding = playoffData.standings.find(p => p.driver === driver.driver);
+    if (playoffStanding) {
+      // Get playoff points from CSV (these are the additional points earned in playoffs)
+      const playoffPointsFromCSV = playoffStanding.playoffPoints || playoffStanding.points;
+      
+      // Calculate season playoff bonus points using configuration
+      const { bonusPoints } = PLAYOFF_CONFIG;
+      const playoffBonusPoints = (driver.wins * bonusPoints.winPoints) + ((driver.stageWins || 0) * bonusPoints.stageWinPoints);
+      
+      // ADD playoff points to existing season total (don't replace)
+      const newTotalPoints = driver.totalPoints + playoffPointsFromCSV + playoffBonusPoints;
+      
+      console.log(`${driver.driver}: Season=${driver.totalPoints}, CSV Playoff=${playoffPointsFromCSV}, Bonus=${playoffBonusPoints} (${driver.wins} wins × ${bonusPoints.winPoints} + ${driver.stageWins || 0} stage wins × ${bonusPoints.stageWinPoints}), New Total=${newTotalPoints}`);
+      
+      return {
+        ...driver,
+        totalPoints: newTotalPoints,
+        positionChange: '' // Will be calculated after sorting
+      };
+    }
+    return driver;
+  });
+  
+  // Sort by playoff points and calculate position changes
+  const previousPositions = new Map(summary.currentStandings.map((driver, index) => [driver.driver, index]));
+  updatedStandings.sort((a, b) => b.totalPoints - a.totalPoints);
+  
+  // Calculate position changes from playoff reset
+  updatedStandings.forEach((driver, newIndex) => {
+    const previousIndex = previousPositions.get(driver.driver);
+    if (previousIndex !== undefined) {
+      const change = previousIndex - newIndex;
+      if (change > 0) {
+        driver.positionChange = `+${change}`;
+      } else if (change < 0) {
+        driver.positionChange = `${change}`;
+      } else {
+        driver.positionChange = '0';
+      }
+    } else {
+      driver.positionChange = 'NEW';
+    }
+  });
+  
+  summary.currentStandings = updatedStandings;
+  
+  // Mark as playoff season
+  summary.isPlayoffSeason = true;
+  summary.currentPlayoffRound = getPlayoffRoundFromName(playoffData.metadata.playoffRound);
+  
+  // Save updated summary
+  const summaryFile = path.join(seriesDir, `${season}-summary.json`);
+  await fs.writeFile(summaryFile, JSON.stringify(summary, null, 2));
+  
+  // Also save the raw playoff data for reference
+  const playoffFile = path.join(seriesDir, `${season}-playoff-${Date.now()}.json`);
+  await fs.writeFile(playoffFile, JSON.stringify(playoffData, null, 2));
+}
+
+function getPlayoffRoundFromName(roundName: string): 'regular' | 'round1' | 'round2' | 'championship' {
+  const lowerName = roundName.toLowerCase();
+  if (lowerName.includes('championship') || lowerName.includes('final')) {
+    return 'championship';
+  } else if (lowerName.includes('round of 8') || lowerName.includes('round 2')) {
+    return 'round2';
+  } else if (lowerName.includes('round of 12') || lowerName.includes('round 1')) {
+    return 'round1';
+  }
+  return 'round1'; // Default to round1 for "Chase" uploads
+}
+
+export async function saveRaceData(raceData: RaceData, raceNumberOverride?: number): Promise<void> {
+  // Ensure data directory exists
+  await ensureDataDirectory();
+  
+  const series = raceData.metadata.series.toLowerCase().replace(/\s+/g, '-');
+  const season = raceData.metadata.season.toLowerCase().replace(/\s+/g, '-');
+  const seriesDir = path.join(DATA_DIR, series);
+  const seasonFile = path.join(seriesDir, `${season}.json`);
+  
+  // Ensure series directory exists
+  try {
+    await fs.mkdir(seriesDir, { recursive: true });
+  } catch (error) {
+    // Directory might already exist
+  }
+  
+  // Load existing season data or create new
+  let seasonData: SeasonData;
+  try {
+    const existingData = await fs.readFile(seasonFile, 'utf-8');
+    seasonData = JSON.parse(existingData);
+  } catch (error) {
+    seasonData = {
+      series: raceData.metadata.series,
+      season: raceData.metadata.season,
+      races: [],
+      lastUpdated: new Date().toISOString()
+    };
+  }
+  
+  // Apply race number override if specified
+  if (raceNumberOverride) {
+    raceData.metadata.raceNumber = raceNumberOverride;
+    
+    // Check if race already exists by race number - REPLACE if found
+    const existingRaceIndex = seasonData.races.findIndex(race => 
+      race.metadata.raceNumber === raceNumberOverride
+    );
+    
+    if (existingRaceIndex >= 0) {
+      // Replace existing race with same number (no duplicates)
+      console.log(`Replacing existing race ${raceNumberOverride}: ${seasonData.races[existingRaceIndex].metadata.track} -> ${raceData.metadata.track}`);
+      seasonData.races[existingRaceIndex] = raceData;
+    } else {
+      // Add new race and sort by race number
+      console.log(`Adding new race ${raceNumberOverride}: ${raceData.metadata.track}`);
+      seasonData.races.push(raceData);
+      seasonData.races.sort((a, b) => (a.metadata.raceNumber || 0) - (b.metadata.raceNumber || 0));
+    }
+  } else {
+    // Check if race already exists (by date and track) - REPLACE if found
+    const existingRaceIndex = seasonData.races.findIndex(race => 
+      race.metadata.raceDate === raceData.metadata.raceDate && 
+      race.metadata.track === raceData.metadata.track
+    );
+    
+    if (existingRaceIndex >= 0) {
+      // Replace existing race (no duplicates)
+      console.log(`Replacing existing race: ${seasonData.races[existingRaceIndex].metadata.track} on ${raceData.metadata.raceDate}`);
+      seasonData.races[existingRaceIndex] = raceData;
+    } else {
+      // Add new race
+      console.log(`Adding new race: ${raceData.metadata.track} on ${raceData.metadata.raceDate}`);
+      seasonData.races.push(raceData);
+    }
+    
+    // Sort races by date and assign sequential race numbers
+    seasonData.races.sort((a, b) => new Date(a.metadata.raceDate).getTime() - new Date(b.metadata.raceDate).getTime());
+    
+    seasonData.races.forEach((race, index) => {
+      race.metadata.raceNumber = index + 1;
+    });
+  }
+  
+  // Determine playoff information for all races
+  seasonData.races.forEach((race) => {
+    const raceNumber = race.metadata.raceNumber || 1;
+    
+    // Determine playoff round based on race number
+    if (PLAYOFF_CONFIG.rounds.regular.races.includes(raceNumber)) {
+      race.metadata.isPlayoffRace = false;
+      race.metadata.playoffRound = 'regular';
+    } else if (PLAYOFF_CONFIG.rounds.round1.races.includes(raceNumber)) {
+      race.metadata.isPlayoffRace = true;
+      race.metadata.playoffRound = 'round1';
+    } else if (PLAYOFF_CONFIG.rounds.round2.races.includes(raceNumber)) {
+      race.metadata.isPlayoffRace = true;
+      race.metadata.playoffRound = 'round2';
+    } else if (PLAYOFF_CONFIG.rounds.championship.races.includes(raceNumber)) {
+      race.metadata.isPlayoffRace = true;
+      race.metadata.playoffRound = 'championship';
+    } else {
+      race.metadata.isPlayoffRace = false;
+      race.metadata.playoffRound = 'regular';
+    }
+  });
+  
+  seasonData.lastUpdated = new Date().toISOString();
+  
+  // Save updated season data
+  await fs.writeFile(seasonFile, JSON.stringify(seasonData, null, 2));
+  
+  // Also save a comprehensive season summary with playoff information
+  const summary = await calculateSeasonSummary(seasonData.races, raceData.metadata.series, raceData.metadata.season);
+  const summaryFile = path.join(seriesDir, `${season}-summary.json`);
+  await fs.writeFile(summaryFile, JSON.stringify(summary, null, 2));
+}
+
+export function calculateSeasonSummary(races: RaceData[], series: string, season: string): SeasonSummary {
+  const driverStats = new Map<string, DriverSeasonStats>();
+  const raceWinners: RaceWinner[] = [];
+  
+  // Helper function to calculate standings for subset of races
+  const calculateStandingsForRaces = (raceSubset: RaceData[]): DriverSeasonStats[] => {
+    const tempStats = new Map<string, DriverSeasonStats>();
+    
+    raceSubset.forEach(race => {
+      race.results.forEach(result => {
+        if (!tempStats.has(result.driver)) {
+          tempStats.set(result.driver, {
+            driver: result.driver,
+            totalPoints: 0,
+            wins: 0, poles: 0, top5s: 0, top10s: 0, dnfs: 0, races: 0,
+            averageFinish: 0, averageStart: 0, totalLapsLed: 0, totalIncidents: 0,
+            fastestLaps: 0, stageWins: 0, totalStagePoints: 0, totalBonusPoints: 0,
+            totalPenaltyPoints: 0, bestFinish: 999, worstFinish: 1,
+            currentStreak: '', lastRaceFinish: 0, lastRaceTrack: '',
+            positionChange: ''
+          });
+        }
+        const stats = tempStats.get(result.driver)!;
+        stats.totalPoints += result.totalPoints;
+        stats.races++;
+      });
+    });
+    
+    const standings = Array.from(tempStats.values());
+    standings.sort((a, b) => b.totalPoints - a.totalPoints);
+    return standings;
+  };
+  
+  // Initialize stats tracking
+  let totalLapsAllRaces = 0;
+  let totalCautions = 0;
+  let allDrivers = new Set<string>();
+  let totalIncidents = 0;
+  
+  // Process each race
+  races.forEach((race, raceIndex) => {
+    const raceNumber = raceIndex + 1;
+    totalLapsAllRaces += race.metadata.raceLaps || 0;
+    totalCautions += race.metadata.cautions || 0;
+    
+    // Get race winner
+    const winner = race.results[0];
+    if (winner) {
+      raceWinners.push({
+        driver: winner.driver,
+        track: race.metadata.track,
+        date: race.metadata.raceDate,
+        raceNumber,
+        lapsLed: winner.lapsLed,
+        margin: winner.interval || '-',
+        fastestLap: winner.fastestLap
+      });
+    }
+    
+    // Process each driver's result
+    race.results.forEach(result => {
+      allDrivers.add(result.driver);
+      totalIncidents += result.incidents;
+      
+      if (!driverStats.has(result.driver)) {
+        driverStats.set(result.driver, {
+          driver: result.driver,
+          totalPoints: 0,
+          wins: 0,
+          poles: 0,
+          top5s: 0,
+          top10s: 0,
+          dnfs: 0,
+          races: 0,
+          averageFinish: 0,
+          averageStart: 0,
+          totalLapsLed: 0,
+          totalIncidents: 0,
+          fastestLaps: 0,
+          stageWins: 0,
+          totalStagePoints: 0,
+          totalBonusPoints: 0,
+          totalPenaltyPoints: 0,
+          bestFinish: 999,
+          worstFinish: 1,
+          currentStreak: '',
+          lastRaceFinish: result.finish,
+          lastRaceTrack: race.metadata.track,
+          positionChange: ''
+        });
+      }
+      
+      const stats = driverStats.get(result.driver)!;
+      
+      // Update cumulative stats
+      stats.totalPoints += result.totalPoints;
+      stats.races++;
+      stats.totalLapsLed += result.lapsLed;
+      stats.totalIncidents += result.incidents;
+      stats.totalStagePoints += result.stagePoints;
+      stats.totalBonusPoints += result.bonusPoints;
+      stats.totalPenaltyPoints += result.penaltyPoints;
+      stats.lastRaceFinish = result.finish;
+      stats.lastRaceTrack = race.metadata.track;
+      
+      // Track wins and special achievements
+      if (result.finish === 1) stats.wins++;
+      if (result.start === 1) stats.poles++;
+      if (result.finish <= 5) stats.top5s++;
+      if (result.finish <= 10) stats.top10s++;
+      if (result.status.toLowerCase().includes('disconnect') || 
+          result.status.toLowerCase().includes('dnf')) stats.dnfs++;
+      
+      // Track stage wins (estimate based on stage points)
+      // Each stage win typically gives 10 points, so if they have stage points, count as stage wins
+      if (result.stagePoints >= 10) {
+        stats.stageWins += Math.floor(result.stagePoints / 10);
+      } else if (result.stagePoints > 0) {
+        // If they have some stage points (1-9), they likely won at least one stage
+        stats.stageWins += 1;
+      }
+      
+      // Track best/worst finishes
+      if (result.finish < stats.bestFinish) stats.bestFinish = result.finish;
+      if (result.finish > stats.worstFinish) stats.worstFinish = result.finish;
+    });
+  });
+  
+  // Calculate averages and finalize stats
+  const standings: DriverSeasonStats[] = [];
+  for (const stats of driverStats.values()) {
+    if (stats.races > 0) {
+      stats.averageFinish = parseFloat((stats.totalPoints / stats.races).toFixed(1));
+      // Calculate current streak (simplified)
+      if (stats.lastRaceFinish === 1) {
+        stats.currentStreak = 'Won last race';
+      } else if (stats.lastRaceFinish <= 5) {
+        stats.currentStreak = 'Top 5 last race';
+      } else if (stats.lastRaceFinish <= 10) {
+        stats.currentStreak = 'Top 10 last race';
+      } else {
+        stats.currentStreak = `Finished ${stats.lastRaceFinish}`;
+      }
+      
+      standings.push(stats);
+    }
+  }
+  
+  // Sort by total points
+  standings.sort((a, b) => b.totalPoints - a.totalPoints);
+  
+  // Calculate position changes (need previous race standings for comparison)
+  if (races.length > 1) {
+    // Calculate standings after previous race
+    const previousRaceStandings = calculateStandingsForRaces(races.slice(0, -1));
+    
+    standings.forEach((currentStats, currentIndex) => {
+      const previousPosition = previousRaceStandings.findIndex(
+        (prevStats: DriverSeasonStats) => prevStats.driver === currentStats.driver
+      );
+      
+      if (previousPosition >= 0) {
+        const change = previousPosition - currentIndex;
+        if (change > 0) {
+          currentStats.positionChange = `+${change}`;
+        } else if (change < 0) {
+          currentStats.positionChange = `${change}`;
+        } else {
+          currentStats.positionChange = '0';
+        }
+      } else {
+        // New driver this season
+        currentStats.positionChange = 'NEW';
+      }
+    });
+  } else {
+    // First race of season - no position changes
+    standings.forEach(stats => {
+      stats.positionChange = '--';
+    });
+  }
+  
+  // Calculate season-wide statistics
+  const mostWins = standings.reduce((max, driver) => 
+    driver.wins > max.wins ? driver : max, standings[0] || { driver: '', wins: 0 });
+  
+  const mostPoles = standings.reduce((max, driver) => 
+    driver.poles > max.poles ? driver : max, standings[0] || { driver: '', poles: 0 });
+  
+  const mostLapsLed = standings.reduce((max, driver) => 
+    driver.totalLapsLed > max.totalLapsLed ? driver : max, standings[0] || { driver: '', totalLapsLed: 0 });
+  
+  // Determine current playoff status
+  const currentRace = races.length;
+  let currentPlayoffRound: 'regular' | 'round1' | 'round2' | 'championship' = 'regular';
+  let isPlayoffSeason = false;
+  
+  if (PLAYOFF_CONFIG.rounds.championship.races.includes(currentRace)) {
+    currentPlayoffRound = 'championship';
+    isPlayoffSeason = true;
+  } else if (PLAYOFF_CONFIG.rounds.round2.races.includes(currentRace)) {
+    currentPlayoffRound = 'round2';
+    isPlayoffSeason = true;
+  } else if (PLAYOFF_CONFIG.rounds.round1.races.includes(currentRace)) {
+    currentPlayoffRound = 'round1';
+    isPlayoffSeason = true;
+  } else {
+    currentPlayoffRound = 'regular';
+    isPlayoffSeason = false;
+  }
+  
+  return {
+    series,
+    season,
+    totalRaces: races.length,
+    completedRaces: races.length,
+    currentRace,
+    isPlayoffSeason,
+    currentPlayoffRound,
+    currentStandings: standings,
+    raceWinners,
+    lastUpdated: new Date().toISOString(),
+    seasonStats: {
+      totalDrivers: allDrivers.size,
+      averageLapsPerRace: races.length > 0 ? Math.round(totalLapsAllRaces / races.length) : 0,
+      totalIncidents,
+      averageCautions: races.length > 0 ? Math.round(totalCautions / races.length) : 0,
+      mostWins: { driver: mostWins.driver, wins: mostWins.wins },
+      mostPoles: { driver: mostPoles.driver, poles: mostPoles.poles },
+      mostLapsLed: { driver: mostLapsLed.driver, laps: mostLapsLed.totalLapsLed }
+    }
+  };
+}
+
+export async function getSeasonStandings(series: string, season: string): Promise<DriverStanding[]> {
+  const summary = await getSeasonSummary(series, season);
+  if (!summary) return [];
+  
+  // Convert DriverSeasonStats to DriverStanding format
+  return summary.currentStandings.map((stats, index) => ({
+    position: index + 1,
+    driver: stats.driver,
+    points: stats.totalPoints,
+    wins: stats.wins,
+    top5s: stats.top5s,
+    top10s: stats.top10s,
+    averageFinish: stats.averageFinish,
+    lapsLed: stats.totalLapsLed,
+    incidents: stats.totalIncidents
+  }));
+}
+
+export async function getLatestRaceResult(series: string, season: string): Promise<RaceData | null> {
+  const seasonData = await getSeasonData(series, season);
+  if (!seasonData || seasonData.races.length === 0) return null;
+  
+  // Return the most recent race
+  return seasonData.races[seasonData.races.length - 1];
+}
+
+export async function getAllRaces(series: string, season: string): Promise<RaceData[]> {
+  const seasonData = await getSeasonData(series, season);
+  return seasonData?.races || [];
+}
+
+export async function getSeasonData(series: string, season: string): Promise<SeasonData | null> {
+  try {
+    const seriesSlug = series.toLowerCase().replace(/\s+/g, '-');
+    const seasonSlug = season.toLowerCase().replace(/\s+/g, '-');
+    const seasonFile = path.join(DATA_DIR, seriesSlug, `${seasonSlug}.json`);
+    
+    const data = await fs.readFile(seasonFile, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function listAvailableSeasons(): Promise<{ series: string; seasons: string[] }[]> {
+  try {
+    await ensureDataDirectory();
+    const seriesDirs = await fs.readdir(DATA_DIR, { withFileTypes: true });
+    
+    const result = [];
+    for (const seriesDir of seriesDirs) {
+      if (seriesDir.isDirectory()) {
+        try {
+          const seasonFiles = await fs.readdir(path.join(DATA_DIR, seriesDir.name));
+          const seasons = seasonFiles
+            .filter(file => file.endsWith('.json'))
+            .map(file => file.replace('.json', ''));
+          
+          if (seasons.length > 0) {
+            result.push({
+              series: seriesDir.name,
+              seasons
+            });
+          }
+        } catch (error) {
+          // Skip if can't read series directory
+        }
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function getSeasonSummary(series: string, season: string): Promise<SeasonSummary | null> {
+  const formattedSeries = series.toLowerCase().replace(/\s+/g, '-');
+  const formattedSeason = season.toLowerCase().replace(/\s+/g, '-');
+  const summaryFile = path.join(DATA_DIR, formattedSeries, `${formattedSeason}-summary.json`);
+  
+  try {
+    const data = await fs.readFile(summaryFile, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    // Summary file doesn't exist, try to regenerate it from season data
+    console.log(`Summary file not found, attempting to regenerate: ${summaryFile}`);
+    
+    const seasonFile = path.join(DATA_DIR, formattedSeries, `${formattedSeason}.json`);
+    try {
+      const seasonData = await fs.readFile(seasonFile, 'utf-8');
+      const data = JSON.parse(seasonData);
+      
+      if (data.races && data.races.length > 0) {
+        // Regenerate summary from race data
+        const summary = calculateSeasonSummary(data.races, data.series, data.season);
+        
+        // Save the regenerated summary
+        await fs.writeFile(summaryFile, JSON.stringify(summary, null, 2));
+        console.log(`Successfully regenerated summary file: ${summaryFile}`);
+        
+        return summary;
+      }
+    } catch (seasonError) {
+      console.error(`Failed to load season data: ${seasonError}`);
+    }
+    
+    return null;
+  }
+}
+
+export async function getRaceWinners(series: string, season: string): Promise<RaceWinner[]> {
+  const summary = await getSeasonSummary(series, season);
+  return summary?.raceWinners || [];
+}
+
+export async function getDriverSeasonStats(series: string, season: string, driver?: string): Promise<DriverSeasonStats[]> {
+  const summary = await getSeasonSummary(series, season);
+  if (!summary) return [];
+  
+  if (driver) {
+    const driverStats = summary.currentStandings.find(stats => 
+      stats.driver.toLowerCase() === driver.toLowerCase()
+    );
+    return driverStats ? [driverStats] : [];
+  }
+  
+  return summary.currentStandings;
+}
+
+export async function getLatestRaceWinner(series: string, season: string): Promise<RaceWinner | null> {
+  const winners = await getRaceWinners(series, season);
+  return winners.length > 0 ? winners[winners.length - 1] : null;
+}
+
+export async function getAllAvailableSeasons(): Promise<{ series: string; seasons: string[] }[]> {
+  await ensureDataDirectory();
+  
+  const result: { series: string; seasons: string[] }[] = [];
+  
+  try {
+    const seriesFolders = await fs.readdir(DATA_DIR);
+    
+    for (const folder of seriesFolders) {
+      const seriesPath = path.join(DATA_DIR, folder);
+      const stat = await fs.stat(seriesPath);
+      
+      if (stat.isDirectory()) {
+        const files = await fs.readdir(seriesPath);
+        const seasons = files
+          .filter(file => file.endsWith('.json') && !file.endsWith('-summary.json'))
+          .map(file => file.replace('.json', ''))
+          .map(season => season.replace(/-/g, ' '));
+        
+        if (seasons.length > 0) {
+          result.push({
+            series: folder.replace(/-/g, ' '),
+            seasons: seasons.sort()
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error reading available seasons:', error);
+  }
+  
+  return result;
+}
+
+async function ensureDataDirectory(): Promise<void> {
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+  } catch (error) {
+    // Directory might already exist
+  }
+}

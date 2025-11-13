@@ -15,8 +15,9 @@ interface RaceResult {
 }
 
 interface RaceResultsResponse {
-  result: RaceResult | null
-  lastUpdated: string
+  result?: RaceResult | null // Old format
+  latestWinner?: any // New CSV format
+  lastUpdated?: string
 }
 
 export default function RaceWinner({ league }: RaceWinnerProps) {
@@ -31,7 +32,7 @@ export default function RaceWinner({ league }: RaceWinnerProps) {
         setLoading(true)
         setError(null)
         
-        const response = await fetch(`/api/race-results?league=${league}`)
+        const response = await fetch(`/api/race-winners?series=${league === 'trucks' ? 'Truck' : 'ARCA'}&season=${league === 'trucks' ? 'CRL Truck Series Season 24' : '2024'}&latest=true`)
         
         if (!response.ok) {
           throw new Error('Failed to fetch race results')
@@ -39,8 +40,23 @@ export default function RaceWinner({ league }: RaceWinnerProps) {
         
         const data: RaceResultsResponse = await response.json()
         
-        setRaceResult(data.result)
-        setLastUpdated(data.lastUpdated)
+        // Handle both old and new API formats
+        if (data.latestWinner) {
+          // New CSV format
+          setRaceResult({
+            winner: data.latestWinner.driver,
+            track: data.latestWinner.track,
+            date: data.latestWinner.date
+          })
+        } else if (data.result) {
+          // Old format
+          setRaceResult(data.result)
+        } else {
+          // No data available
+          setRaceResult(null)
+        }
+        
+        setLastUpdated(data.lastUpdated || new Date().toISOString())
         setLoading(false)
       } catch (err) {
         console.error('Error fetching race results:', err)
