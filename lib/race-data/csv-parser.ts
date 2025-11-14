@@ -174,7 +174,14 @@ export function parsePlayoffStandingsCSV(csvContent: string): PlayoffStandingsDa
           metadata.league = cleanValue;
           break;
         case 'series':
-          metadata.series = cleanValue;
+          // Normalize series names to match component expectations
+          if (cleanValue.toLowerCase().includes('arca')) {
+            metadata.series = 'ARCA';
+          } else if (cleanValue.toLowerCase().includes('truck')) {
+            metadata.series = 'Truck';  
+          } else {
+            metadata.series = cleanValue;
+          }
           break;
         case 'season':
           metadata.season = cleanValue;
@@ -282,7 +289,14 @@ export function parseRaceCSV(csvContent: string): RaceData {
           metadata.league = cleanValue;
           break;
         case 'series':
-          metadata.series = cleanValue;
+          // Normalize series names to match component expectations
+          if (cleanValue.toLowerCase().includes('arca')) {
+            metadata.series = 'ARCA';
+          } else if (cleanValue.toLowerCase().includes('truck')) {
+            metadata.series = 'Truck';  
+          } else {
+            metadata.series = cleanValue;
+          }
           break;
         case 'season':
           metadata.season = cleanValue;
