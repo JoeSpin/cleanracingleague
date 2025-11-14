@@ -101,10 +101,11 @@ export default function AdminPage() {
     
     try {
       setError(null); // Clear any previous errors
-      const response = await fetch('/api/manage-files', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath })
+      const url = new URL('/api/manage-files', window.location.origin);
+      url.searchParams.set('filePath', filePath);
+      
+      const response = await fetch(url.toString(), {
+        method: 'DELETE'
       });
       
       const data = await response.json();
@@ -112,7 +113,7 @@ export default function AdminPage() {
       if (response.ok) {
         loadExistingFiles(); // Reload the file list
         // Show success message briefly
-        setResult({ message: `Successfully deleted ${fileType}` });
+        setResult({ message: data.message || `Successfully deleted ${fileType}` });
         setTimeout(() => setResult(null), 3000);
       } else {
         setError(data.error || `Failed to delete ${fileType}. Status: ${response.status}`);
