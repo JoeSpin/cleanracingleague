@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { put } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 import { RaceData, DriverStanding, DriverResult, calculateSeasonStandings, PlayoffStandingsData } from './csv-parser';
 import { PLAYOFF_CONFIG } from '../playoff-config';
 
@@ -622,15 +622,65 @@ export async function getAllRaces(series: string, season: string): Promise<RaceD
   return seasonData?.races || [];
 }
 
+// Load season data from Vercel Blob Storage
+async function loadFromBlobStorage(seriesSlug: string, seasonSlug: string): Promise<SeasonData | null> {
+  try {
+    const fileName = `${seriesSlug}/${seasonSlug}.json`;
+    console.log('Attempting to load from blob storage:', fileName);
+    
+    // List all blobs to see what exists
+    const { blobs } = await list({ 
+      token: process.env.crl_READ_WRITE_TOKEN 
+    });
+    
+    console.log('Available blobs:', blobs.map(b => b.pathname));
+    
+    // Find the specific file
+    const targetBlob = blobs.find(blob => blob.pathname === fileName);
+    
+    if (!targetBlob) {
+      console.log('File not found in blob storage:', fileName);
+      return null;
+    }
+    
+    console.log('Found blob:', targetBlob.url);
+    
+    // Fetch the blob content
+    const response = await fetch(targetBlob.url);
+    if (!response.ok) {
+      console.error('Failed to fetch blob:', response.status, response.statusText);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log('Successfully loaded season data from blob storage');
+    return data;
+    
+  } catch (error) {
+    console.error('Error loading from blob storage:', error);
+    return null;
+  }
+}
+
 export async function getSeasonData(series: string, season: string): Promise<SeasonData | null> {
   try {
     const seriesSlug = series.toLowerCase().replace(/\s+/g, '-');
     const seasonSlug = season.toLowerCase().replace(/\s+/g, '-');
-    const seasonFile = path.join(DATA_DIR, seriesSlug, `${seasonSlug}.json`);
     
-    const data = await fs.readFile(seasonFile, 'utf-8');
-    return JSON.parse(data);
+    // Use blob storage in production, local filesystem in development
+    const useBlob = process.env.VERCEL || process.env.NODE_ENV === 'production';
+    
+    if (useBlob) {
+      console.log('Loading season data from blob storage');
+      return await loadFromBlobStorage(seriesSlug, seasonSlug);
+    } else {
+      console.log('Loading season data from local filesystem');
+      const seasonFile = path.join(DATA_DIR, seriesSlug, `${seasonSlug}.json`);
+      const data = await fs.readFile(seasonFile, 'utf-8');
+      return JSON.parse(data);
+    }
   } catch (error) {
+    console.error('Error loading season data:', error);
     return null;
   }
 }
