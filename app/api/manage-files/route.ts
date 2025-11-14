@@ -27,6 +27,94 @@ interface FileInfo {
 
 export async function GET() {
   try {
+    // Use blob storage in production, local filesystem in development
+    const useBlob = process.env.VERCEL || process.env.NODE_ENV === 'production';
+    
+    if (useBlob) {
+      console.log('Loading file list from blob storage');
+      return await getFilesFromBlob();
+    } else {
+      console.log('Loading file list from local filesystem');
+      return await getFilesFromLocal();
+    }
+  } catch (error) {
+    console.error('Error loading files:', error);
+    return NextResponse.json({ 
+      files: [], 
+      error: 'Failed to load files' 
+    }, { status: 500 });
+  }
+}
+
+async function getFilesFromBlob() {
+  try {
+    const { blobs } = await list({ 
+      token: process.env.crl_READ_WRITE_TOKEN 
+    });
+    
+    console.log('Available blobs:', blobs.map(b => b.pathname));
+    
+    const files: FileInfo[] = [];
+    const seasonGroups = new Map<string, FileInfo>();
+    
+    for (const blob of blobs) {
+      // Parse pathname like "truck/crl-truck-series-season-24.json"
+      const parts = blob.pathname.split('/');
+      if (parts.length === 2) {
+        const series = parts[0];
+        const fileName = parts[1];
+        
+        // Skip summary files
+        if (fileName.endsWith('-summary.json')) continue;
+        
+        if (fileName.endsWith('.json')) {
+          // This is a season file, fetch it to get race details
+          try {
+            const response = await fetch(blob.url);
+            const seasonData = await response.json();
+            
+            if (seasonData.races && Array.isArray(seasonData.races)) {
+              const seasonKey = `${series}-${fileName.replace('.json', '')}`;
+              
+              if (!seasonGroups.has(seasonKey)) {
+                seasonGroups.set(seasonKey, {
+                  series: series,
+                  season: seasonData.season || fileName.replace('.json', ''),
+                  races: [],
+                  playoffs: []
+                });
+              }
+              
+              const fileInfo = seasonGroups.get(seasonKey)!;
+              
+              // Add races from this season file
+              for (const race of seasonData.races) {
+                fileInfo.races.push({
+                  raceNumber: race.metadata?.raceNumber || 1,
+                  track: race.metadata?.track || 'Unknown',
+                  date: race.metadata?.raceDate || 'Unknown',
+                  filePath: blob.pathname
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error parsing season file ${blob.pathname}:`, error);
+          }
+        }
+      }
+    }
+    
+    files.push(...seasonGroups.values());
+    
+    return NextResponse.json({ files });
+  } catch (error) {
+    console.error('Error loading files from blob:', error);
+    return NextResponse.json({ files: [] });
+  }
+}
+
+async function getFilesFromLocal() {
+  try {
     const files: FileInfo[] = [];
     
     // Check if data directory exists
@@ -150,7 +238,6 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const filePath = searchParams.get('filePath');
-    const isProduction = process.env.NODE_ENV === 'production';
     
     if (!filePath) {
       return NextResponse.json(
@@ -159,127 +246,90 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('Delete request:', { filePath, isProduction, hasToken: !!process.env.crl_read_WRITE_TOKEN });
+    console.log('Delete request:', { filePath, hasToken: !!process.env.crl_READ_WRITE_TOKEN });
 
-    let deletedFromBlob = false;
-    let deletedFromLocal = false;
+    // Use blob storage in production, local filesystem in development
+    const useBlob = process.env.VERCEL || process.env.NODE_ENV === 'production';
 
-    // In development, try local deletion first
-    if (!isProduction) {
-      try {
-        const fullPath = path.join(DATA_DIR, filePath);
-        console.log('Trying local deletion:', fullPath);
-        
-        await fs.access(fullPath);
-        
-        const relativePath = path.relative(DATA_DIR, fullPath);
-        if (relativePath.startsWith('..')) {
-          return NextResponse.json(
-            { error: 'Invalid file path' },
-            { status: 400 }
-          );
-        }
-        
-        await fs.unlink(fullPath);
-        deletedFromLocal = true;
-        
-        // Also delete summary file if it exists
-        const summaryPath = fullPath.replace('.json', '-summary.json');
-        try {
-          await fs.access(summaryPath);
-          await fs.unlink(summaryPath);
-        } catch {
-          // Summary file doesn't exist, that's okay
-        }
-        
-        return NextResponse.json({ 
-          success: true,
-          message: 'File deleted successfully from local storage!'
-        });
-      } catch (localError: any) {
-        console.error('Local deletion failed:', localError);
-        return NextResponse.json(
-          { error: `File not found: ${filePath}` },
-          { status: 404 }
-        );
-      }
-    }
-
-    // Try blob storage deletion in production
-    if (isProduction && process.env.crl_READ_WRITE_TOKEN) {
-      try {
-        // Convert local path format to blob path if needed
-        const blobPath = filePath.replace(/\\/g, '/');
-        
-        await del(blobPath);
-        deletedFromBlob = true;
-        
-        // Also try to delete summary file
-        const summaryPath = blobPath.replace('.json', '-summary.json');
-        try {
-          await del(summaryPath);
-        } catch (summaryError) {
-          console.warn('Summary file not found in blob storage:', summaryPath);
-        }
-      } catch (blobError: any) {
-        console.warn('Blob deletion failed:', blobError.message);
-        // Continue to try local deletion as fallback
-      }
-    }
-
-    // Try local filesystem deletion (always in dev, fallback in production)
-    if (!deletedFromBlob) {
-      try {
-        const fullPath = path.join(DATA_DIR, filePath);
-        
-        await fs.access(fullPath);
-        
-        const relativePath = path.relative(DATA_DIR, fullPath);
-        if (relativePath.startsWith('..')) {
-          return NextResponse.json(
-            { error: 'Invalid file path' },
-            { status: 400 }
-          );
-        }
-        
-        await fs.unlink(fullPath);
-        deletedFromLocal = true;
-        
-        // Also delete summary file if it exists
-        const summaryPath = fullPath.replace('.json', '-summary.json');
-        try {
-          await fs.access(summaryPath);
-          await fs.unlink(summaryPath);
-        } catch {
-          // Summary file doesn't exist, that's okay
-        }
-      } catch (localError: any) {
-        if (!deletedFromBlob) {
-          return NextResponse.json(
-            { error: `File not found: ${filePath}` },
-            { status: 404 }
-          );
-        }
-      }
-    }
-
-    if (deletedFromBlob || deletedFromLocal) {
-      const location = deletedFromBlob ? 'cloud storage' : 'local storage';
-      return NextResponse.json({ 
-        success: true,
-        message: `File deleted successfully from ${location}! ${deletedFromBlob ? 'Changes are live immediately.' : ''}`
-      });
+    if (useBlob) {
+      console.log('Deleting from blob storage');
+      return await deleteFromBlob(filePath);
     } else {
-      return NextResponse.json(
-        { error: 'Failed to delete file from any storage location' },
-        { status: 500 }
-      );
+      console.log('Deleting from local filesystem');  
+      return await deleteFromLocal(filePath);
     }
   } catch (error: any) {
     console.error('Error deleting file:', error);
     return NextResponse.json(
       { error: `Failed to delete file: ${error.message || 'Unknown error'}` },
       { status: 500 }
+    );
+  }
+}
+
+async function deleteFromBlob(filePath: string) {
+  try {
+    // Convert local path format to blob path if needed
+    const blobPath = filePath.replace(/\\/g, '/');
+    
+    await del(blobPath, { token: process.env.crl_READ_WRITE_TOKEN });
+    
+    // Also try to delete summary file
+    const summaryPath = blobPath.replace('.json', '-summary.json');
+    try {
+      await del(summaryPath, { token: process.env.crl_READ_WRITE_TOKEN });
+    } catch (summaryError) {
+      console.warn('Summary file not found in blob storage:', summaryPath);
+    }
+    
+    return NextResponse.json({ 
+      success: true,
+      message: 'File deleted successfully from cloud storage! Changes are live immediately.'
+    });
+  } catch (error: any) {
+    console.error('Blob deletion failed:', error);
+    return NextResponse.json(
+      { error: `Failed to delete file from cloud storage: ${error.message}` },
+      { status: 500 }
+    );
+  }
+}
+
+async function deleteFromLocal(filePath: string) {
+  try {
+    const fullPath = path.join(DATA_DIR, filePath);
+    console.log('Trying local deletion:', fullPath);
+    
+    await fs.access(fullPath);
+    
+    const relativePath = path.relative(DATA_DIR, fullPath);
+    if (relativePath.startsWith('..')) {
+      return NextResponse.json(
+        { error: 'Invalid file path' },
+        { status: 400 }
+      );
+    }
+    
+    await fs.unlink(fullPath);
+    
+    // Also delete summary file if it exists
+    const summaryPath = fullPath.replace('.json', '-summary.json');
+    try {
+      await fs.access(summaryPath);
+      await fs.unlink(summaryPath);
+    } catch {
+      // Summary file doesn't exist, that's okay
+    }
+    
+    return NextResponse.json({ 
+      success: true,
+      message: 'File deleted successfully from local storage!'
+    });
+  } catch (error: any) {
+    console.error('Local deletion failed:', error);
+    return NextResponse.json(
+      { error: `File not found: ${filePath}` },
+      { status: 404 }
     );
   }
 }
