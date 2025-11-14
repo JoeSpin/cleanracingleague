@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { RaceData, DriverStanding, calculateSeasonStandings, PlayoffStandingsData } from './csv-parser';
+import { put } from '@vercel/blob';
+import { RaceData, DriverStanding, DriverResult, calculateSeasonStandings, PlayoffStandingsData } from './csv-parser';
 import { PLAYOFF_CONFIG } from '../playoff-config';
 
 // Debug current working directory
@@ -203,6 +204,17 @@ export async function saveRaceData(raceData: RaceData, raceNumberOverride?: numb
     season: raceData.metadata.season,
     track: raceData.metadata.track
   });
+
+  // Use Vercel Blob storage in production, local filesystem in development
+  const useBlob = process.env.VERCEL || process.env.NODE_ENV === 'production';
+  
+  if (useBlob) {
+    console.log('Using Vercel Blob storage for production');
+    await saveToBlobStorage(raceData, raceNumberOverride);
+    return;
+  }
+  
+  console.log('Using local filesystem for development');
   
   // Ensure data directory exists and get runtime path
   console.log('Ensuring data directory exists...');
@@ -746,6 +758,82 @@ export async function getAllAvailableSeasons(): Promise<{ series: string; season
   }
   
   return result;
+}
+
+// Vercel Blob Storage implementation
+async function saveToBlobStorage(raceData: RaceData, raceNumberOverride?: number): Promise<void> {
+  console.log('=== Saving to Vercel Blob Storage ===');
+  
+  const series = raceData.metadata.series.toLowerCase().replace(/\s+/g, '-');
+  const season = raceData.metadata.season.toLowerCase().replace(/\s+/g, '-');
+  
+  // Create file path for blob storage
+  const fileName = `${series}/${season}.json`;
+  
+  try {
+    // Try to fetch existing season data from blob storage
+    let existingData: any = { races: [] };
+    
+    // For now, just create new data (we can implement fetching existing data later)
+    const raceNumber = raceNumberOverride || (existingData.races?.length || 0) + 1;
+    
+    // Add the new race
+    const newRace = {
+      raceNumber,
+      track: raceData.metadata.track,
+      date: raceData.metadata.raceDate,
+      type: 'Race',
+      participants: raceData.results.map((p: DriverResult) => ({
+        driver: p.driver,
+        carNumber: p.carNumber,
+        startPos: p.start,
+        finishPos: p.finish,
+        lapsLed: p.lapsLed,
+        incidents: p.incidents,
+        points: p.totalPoints,
+        stageWins: 0, // Not in CSV data
+        stagePoints: p.stagePoints,
+        bonusPoints: p.bonusPoints,
+        fastestLap: p.fastestLap,
+        margin: p.interval
+      }))
+    };
+    
+    existingData.races = existingData.races || [];
+    existingData.races.push(newRace);
+    
+    // Calculate standings
+    existingData.standings = calculateSeasonStandings(existingData.races);
+    
+    // Save to blob storage
+    const blob = await put(fileName, JSON.stringify(existingData, null, 2), {
+      access: 'public',
+      token: process.env.crl_READ_WRITE_TOKEN
+    });
+    
+    console.log('Successfully saved to blob storage:', blob.url);
+    
+    // Also save summary file
+    const summaryFileName = `${series}/${season}-summary.json`;
+    const summary = {
+      series: raceData.metadata.series,
+      season: raceData.metadata.season,
+      totalRaces: existingData.races.length,
+      lastUpdated: new Date().toISOString(),
+      standings: existingData.standings.slice(0, 20) // Top 20 for summary
+    };
+    
+    await put(summaryFileName, JSON.stringify(summary, null, 2), {
+      access: 'public',
+      token: process.env.crl_READ_WRITE_TOKEN
+    });
+    
+    console.log('Successfully saved summary to blob storage');
+    
+  } catch (error: any) {
+    console.error('Error saving to blob storage:', error);
+    throw new Error(`Failed to save race data to blob storage: ${error.message}`);
+  }
 }
 
 async function ensureDataDirectory(): Promise<void> {
