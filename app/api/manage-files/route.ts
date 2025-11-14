@@ -159,8 +159,51 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    console.log('Delete request:', { filePath, isProduction, hasToken: !!process.env.crl_read_WRITE_TOKEN });
+
     let deletedFromBlob = false;
     let deletedFromLocal = false;
+
+    // In development, try local deletion first
+    if (!isProduction) {
+      try {
+        const fullPath = path.join(DATA_DIR, filePath);
+        console.log('Trying local deletion:', fullPath);
+        
+        await fs.access(fullPath);
+        
+        const relativePath = path.relative(DATA_DIR, fullPath);
+        if (relativePath.startsWith('..')) {
+          return NextResponse.json(
+            { error: 'Invalid file path' },
+            { status: 400 }
+          );
+        }
+        
+        await fs.unlink(fullPath);
+        deletedFromLocal = true;
+        
+        // Also delete summary file if it exists
+        const summaryPath = fullPath.replace('.json', '-summary.json');
+        try {
+          await fs.access(summaryPath);
+          await fs.unlink(summaryPath);
+        } catch {
+          // Summary file doesn't exist, that's okay
+        }
+        
+        return NextResponse.json({ 
+          success: true,
+          message: 'File deleted successfully from local storage!'
+        });
+      } catch (localError: any) {
+        console.error('Local deletion failed:', localError);
+        return NextResponse.json(
+          { error: `File not found: ${filePath}` },
+          { status: 404 }
+        );
+      }
+    }
 
     // Try blob storage deletion in production
     if (isProduction && process.env.crl_READ_WRITE_TOKEN) {
