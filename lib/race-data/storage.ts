@@ -622,6 +622,53 @@ export async function getAllRaces(series: string, season: string): Promise<RaceD
   return seasonData?.races || [];
 }
 
+// List available seasons from Vercel Blob Storage
+async function listSeasonsFromBlob(): Promise<{ series: string; seasons: string[] }[]> {
+  try {
+    const { blobs } = await list({ 
+      token: process.env.crl_READ_WRITE_TOKEN 
+    });
+    
+    console.log('Available blobs for listing seasons:', blobs.map(b => b.pathname));
+    
+    // Group blobs by series
+    const seriesMap = new Map<string, Set<string>>();
+    
+    for (const blob of blobs) {
+      // Parse pathname like "truck/crl-truck-series-season-24.json"
+      const parts = blob.pathname.split('/');
+      if (parts.length === 2) {
+        const series = parts[0];
+        const fileName = parts[1];
+        
+        // Extract season name (remove .json extension)
+        if (fileName.endsWith('.json') && !fileName.endsWith('-summary.json')) {
+          const season = fileName.replace('.json', '');
+          
+          if (!seriesMap.has(series)) {
+            seriesMap.set(series, new Set());
+          }
+          seriesMap.get(series)!.add(season);
+        }
+      }
+    }
+    
+    // Convert to expected format
+    const result = [];
+    for (const [series, seasonsSet] of seriesMap) {
+      result.push({
+        series,
+        seasons: Array.from(seasonsSet)
+      });
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error listing seasons from blob:', error);
+    return [];
+  }
+}
+
 // Load season data from Vercel Blob Storage
 async function loadFromBlobStorage(seriesSlug: string, seasonSlug: string): Promise<SeasonData | null> {
   try {
@@ -687,32 +734,42 @@ export async function getSeasonData(series: string, season: string): Promise<Sea
 
 export async function listAvailableSeasons(): Promise<{ series: string; seasons: string[] }[]> {
   try {
-    await ensureDataDirectory();
-    const seriesDirs = await fs.readdir(DATA_DIR, { withFileTypes: true });
+    // Use blob storage in production, local filesystem in development
+    const useBlob = process.env.VERCEL || process.env.NODE_ENV === 'production';
     
-    const result = [];
-    for (const seriesDir of seriesDirs) {
-      if (seriesDir.isDirectory()) {
-        try {
-          const seasonFiles = await fs.readdir(path.join(DATA_DIR, seriesDir.name));
-          const seasons = seasonFiles
-            .filter(file => file.endsWith('.json'))
-            .map(file => file.replace('.json', ''));
-          
-          if (seasons.length > 0) {
-            result.push({
-              series: seriesDir.name,
-              seasons
-            });
+    if (useBlob) {
+      console.log('Listing seasons from blob storage');
+      return await listSeasonsFromBlob();
+    } else {
+      console.log('Listing seasons from local filesystem');
+      await ensureDataDirectory();
+      const seriesDirs = await fs.readdir(DATA_DIR, { withFileTypes: true });
+      
+      const result = [];
+      for (const seriesDir of seriesDirs) {
+        if (seriesDir.isDirectory()) {
+          try {
+            const seasonFiles = await fs.readdir(path.join(DATA_DIR, seriesDir.name));
+            const seasons = seasonFiles
+              .filter(file => file.endsWith('.json'))
+              .map(file => file.replace('.json', ''));
+            
+            if (seasons.length > 0) {
+              result.push({
+                series: seriesDir.name,
+                seasons
+              });
+            }
+          } catch (error) {
+            // Skip if can't read series directory
           }
-        } catch (error) {
-          // Skip if can't read series directory
         }
       }
+      
+      return result;
     }
-    
-    return result;
   } catch (error) {
+    console.error('Error listing seasons:', error);
     return [];
   }
 }
@@ -720,35 +777,50 @@ export async function listAvailableSeasons(): Promise<{ series: string; seasons:
 export async function getSeasonSummary(series: string, season: string): Promise<SeasonSummary | null> {
   const formattedSeries = series.toLowerCase().replace(/\s+/g, '-');
   const formattedSeason = season.toLowerCase().replace(/\s+/g, '-');
-  const summaryFile = path.join(DATA_DIR, formattedSeries, `${formattedSeason}-summary.json`);
   
-  try {
-    const data = await fs.readFile(summaryFile, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    // Summary file doesn't exist, try to regenerate it from season data
-    console.log(`Summary file not found, attempting to regenerate: ${summaryFile}`);
+  // Use blob storage in production, local filesystem in development
+  const useBlob = process.env.VERCEL || process.env.NODE_ENV === 'production';
+  
+  if (useBlob) {
+    console.log('Loading season summary from blob storage');
     
-    const seasonFile = path.join(DATA_DIR, formattedSeries, `${formattedSeason}.json`);
-    try {
-      const seasonData = await fs.readFile(seasonFile, 'utf-8');
-      const data = JSON.parse(seasonData);
-      
-      if (data.races && data.races.length > 0) {
-        // Regenerate summary from race data
-        const summary = calculateSeasonSummary(data.races, data.series, data.season);
-        
-        // Save the regenerated summary
-        await fs.writeFile(summaryFile, JSON.stringify(summary, null, 2));
-        console.log(`Successfully regenerated summary file: ${summaryFile}`);
-        
-        return summary;
-      }
-    } catch (seasonError) {
-      console.error(`Failed to load season data: ${seasonError}`);
+    // Get season data and regenerate summary
+    const seasonData = await loadFromBlobStorage(formattedSeries, formattedSeason);
+    if (seasonData && seasonData.races && seasonData.races.length > 0) {
+      return calculateSeasonSummary(seasonData.races, seasonData.series, seasonData.season);
     }
-    
     return null;
+  } else {
+    console.log('Loading season summary from local filesystem');
+    const summaryFile = path.join(DATA_DIR, formattedSeries, `${formattedSeason}-summary.json`);
+    
+    try {
+      const data = await fs.readFile(summaryFile, 'utf-8');
+      return JSON.parse(data);
+    } catch (error) {
+      // Summary file doesn't exist, try to regenerate it from season data
+      console.log(`Summary file not found, attempting to regenerate: ${summaryFile}`);
+      
+      const seasonFile = path.join(DATA_DIR, formattedSeries, `${formattedSeason}.json`);
+      try {
+        const seasonData = await fs.readFile(seasonFile, 'utf-8');
+        const data = JSON.parse(seasonData);
+        
+        if (data.races && data.races.length > 0) {
+          // Regenerate summary from race data
+          const summary = calculateSeasonSummary(data.races, data.series, data.season);
+          
+          // Save the regenerated summary
+          await fs.writeFile(summaryFile, JSON.stringify(summary, null, 2));
+          console.log(`Successfully regenerated summary file: ${summaryFile}`);
+          return summary;
+        }
+      } catch (error) {
+        console.error(`Failed to load season data: ${error}`);
+      }
+      
+      return null;
+    }
   }
 }
 
@@ -859,7 +931,8 @@ async function saveToBlobStorage(raceData: RaceData, raceNumberOverride?: number
     // Save to blob storage
     const blob = await put(fileName, JSON.stringify(seasonData, null, 2), {
       access: 'public',
-      token: process.env.crl_READ_WRITE_TOKEN
+      token: process.env.crl_READ_WRITE_TOKEN,
+      allowOverwrite: true
     });
     
     console.log('Successfully saved to blob storage:', blob.url);
