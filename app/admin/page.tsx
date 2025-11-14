@@ -28,7 +28,7 @@ export default function AdminPage() {
       <h3>🚀 Production Environment</h3>
       <p>File uploads work directly in production! Files are automatically saved to Vercel Blob Storage.</p>
       <p>No additional steps needed - upload and your changes are live immediately!</p>
-      {!process.env.BLOB_READ_WRITE_TOKEN && (
+      {!process.env.CRL_READ_WRITE_TOKEN && (
         <p style={{color: '#d73a49'}}>⚠️ Note: Blob storage not configured. Files will be saved temporarily.</p>
       )}
     </div>
