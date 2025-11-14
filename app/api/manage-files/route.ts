@@ -159,71 +159,83 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    let deletedFromBlob = false;
+    let deletedFromLocal = false;
+
+    // Try blob storage deletion in production
     if (isProduction && process.env.crl_READ_WRITE_TOKEN) {
-      // Delete from Vercel Blob in production
       try {
-        await del(filePath);
+        // Convert local path format to blob path if needed
+        const blobPath = filePath.replace(/\\/g, '/');
+        
+        await del(blobPath);
+        deletedFromBlob = true;
         
         // Also try to delete summary file
-        const summaryPath = filePath.replace('.json', '-summary.json');
+        const summaryPath = blobPath.replace('.json', '-summary.json');
         try {
           await del(summaryPath);
-        } catch {
-          // Summary might not exist
+        } catch (summaryError) {
+          console.warn('Summary file not found in blob storage:', summaryPath);
+        }
+      } catch (blobError: any) {
+        console.warn('Blob deletion failed:', blobError.message);
+        // Continue to try local deletion as fallback
+      }
+    }
+
+    // Try local filesystem deletion (always in dev, fallback in production)
+    if (!deletedFromBlob) {
+      try {
+        const fullPath = path.join(DATA_DIR, filePath);
+        
+        await fs.access(fullPath);
+        
+        const relativePath = path.relative(DATA_DIR, fullPath);
+        if (relativePath.startsWith('..')) {
+          return NextResponse.json(
+            { error: 'Invalid file path' },
+            { status: 400 }
+          );
         }
         
-        return NextResponse.json({ 
-          success: true,
-          message: 'File deleted successfully! Changes are live immediately.'
-        });
-      } catch (error) {
-        return NextResponse.json(
-          { error: 'Failed to delete file from storage' },
-          { status: 500 }
-        );
+        await fs.unlink(fullPath);
+        deletedFromLocal = true;
+        
+        // Also delete summary file if it exists
+        const summaryPath = fullPath.replace('.json', '-summary.json');
+        try {
+          await fs.access(summaryPath);
+          await fs.unlink(summaryPath);
+        } catch {
+          // Summary file doesn't exist, that's okay
+        }
+      } catch (localError: any) {
+        if (!deletedFromBlob) {
+          return NextResponse.json(
+            { error: `File not found: ${filePath}` },
+            { status: 404 }
+          );
+        }
       }
-    } else {
-      // Delete from local filesystem in development
-      const fullPath = path.join(DATA_DIR, filePath);
-      
-      try {
-        await fs.access(fullPath);
-      } catch {
-        return NextResponse.json(
-          { error: `File not found: ${filePath}` },
-          { status: 404 }
-        );
-      }
-      
-      const relativePath = path.relative(DATA_DIR, fullPath);
-      if (relativePath.startsWith('..')) {
-        return NextResponse.json(
-          { error: 'Invalid file path' },
-          { status: 400 }
-        );
-      }
-      
-      await fs.unlink(fullPath);
-      
-      // Also delete summary file if it exists
-      const summaryPath = fullPath.replace('.json', '-summary.json');
-      try {
-        await fs.access(summaryPath);
-        await fs.unlink(summaryPath);
-      } catch {
-        // Summary file doesn't exist, that's okay
-      }
-      
+    }
+
+    if (deletedFromBlob || deletedFromLocal) {
+      const location = deletedFromBlob ? 'cloud storage' : 'local storage';
       return NextResponse.json({ 
         success: true,
-        message: 'File deleted successfully!'
+        message: `File deleted successfully from ${location}! ${deletedFromBlob ? 'Changes are live immediately.' : ''}`
       });
+    } else {
+      return NextResponse.json(
+        { error: 'Failed to delete file from any storage location' },
+        { status: 500 }
+      );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting file:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: `Failed to delete file: ${errorMessage}` },
+      { error: `Failed to delete file: ${error.message || 'Unknown error'}` },
       { status: 500 }
     );
   }
