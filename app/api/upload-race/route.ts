@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseRaceCSV, parsePlayoffStandingsCSV, isPlayoffStandingsCSV } from '@/lib/race-data/csv-parser';
 import { saveRaceData, savePlayoffStandingsData } from '@/lib/race-data/storage';
+import { put } from '@vercel/blob';
 
 export async function POST(request: NextRequest) {
   try {
@@ -109,6 +110,22 @@ export async function POST(request: NextRequest) {
       
       // Save race data with optional race number override
       await saveRaceData(raceData, raceNumber);
+      
+      // Also backup to Vercel Blob in production 
+      if (process.env.NODE_ENV === 'production' && process.env.BLOB_READ_WRITE_TOKEN) {
+        try {
+          const seriesFolder = raceData.metadata.series.toLowerCase().replace(/\s+/g, '-');
+          const seasonKey = raceData.metadata.season.toLowerCase().replace(/\s+/g, '-');
+          const blobFileName = `${seriesFolder}/${seasonKey}.json`;
+          
+          await put(blobFileName, JSON.stringify(raceData, null, 2), {
+            access: 'public',
+            contentType: 'application/json'
+          });
+        } catch (blobError) {
+          console.warn('Blob storage failed, but main storage succeeded:', blobError);
+        }
+      }
       
       return NextResponse.json({
         success: true,

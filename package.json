@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/html2canvas": "^0.5.35",
     "@vercel/analytics": "^1.5.0",
+    "@vercel/blob": "^2.0.0",
     "@vercel/speed-insights": "^1.2.0",
     "html2canvas": "^1.4.1",
     "next": "14.0.0",

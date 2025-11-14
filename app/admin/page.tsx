@@ -22,6 +22,18 @@ export default function AdminPage() {
   // Check if we're in production environment
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // Production workflow notice
+  const ProductionNotice = () => (
+    <div className={styles.notice}>
+      <h3>🚀 Production Environment</h3>
+      <p>File uploads work directly in production! Files are automatically saved to Vercel Blob Storage.</p>
+      <p>No additional steps needed - upload and your changes are live immediately!</p>
+      {!process.env.BLOB_READ_WRITE_TOKEN && (
+        <p style={{color: '#d73a49'}}>⚠️ Note: Blob storage not configured. Files will be saved temporarily.</p>
+      )}
+    </div>
+  );
+
   // Handle password authentication
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,6 +194,8 @@ export default function AdminPage() {
       ) : (
         <div className={styles.container}>
           <h1>Race Data Admin</h1>
+          
+          {isProduction && <ProductionNotice />}
       
       <div className={styles.uploadSection}>
         <h2>Upload Race Results CSV</h2>

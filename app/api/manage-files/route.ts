@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { list, del } from '@vercel/blob';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
