@@ -111,8 +111,10 @@ export async function POST(request: NextRequest) {
       // Save race data with optional race number override
       await saveRaceData(raceData, raceNumber);
       
+      // TODO: Re-enable blob storage backup once upload is working
+      /*
       // Also backup to Vercel Blob in production 
-      if (process.env.NODE_ENV === 'production' && process.env.crl_READ_WRITE_TOKEN) {
+      if (process.env.NODE_ENV === 'production' && process.env.crl_read_WRITE_TOKEN) {
         try {
           const seriesFolder = raceData.metadata.series.toLowerCase().replace(/\s+/g, '-');
           const seasonKey = raceData.metadata.season.toLowerCase().replace(/\s+/g, '-');
@@ -126,6 +128,7 @@ export async function POST(request: NextRequest) {
           console.warn('Blob storage failed, but main storage succeeded:', blobError);
         }
       }
+      */
       
       return NextResponse.json({
         success: true,
