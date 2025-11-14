@@ -141,6 +141,16 @@ export async function GET() {
 }
 
 export async function DELETE(request: NextRequest) {
+  // Check if we're in a read-only environment (like Vercel production)
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
+  
+  if (isProduction) {
+    return NextResponse.json(
+      { error: 'File deletion is not available in production environment due to read-only file system. Please redeploy with updated files instead.' },
+      { status: 403 }
+    );
+  }
+
   try {
     const { filePath } = await request.json();
     

@@ -19,6 +19,9 @@ export default function AdminPage() {
   const [existingFiles, setExistingFiles] = useState<any[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
 
+  // Check if we're in production environment
+  const isProduction = process.env.NODE_ENV === 'production';
+
   // Handle password authentication
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -311,6 +314,12 @@ export default function AdminPage() {
         <h2>Manage Existing Files</h2>
         <p>View and manage race data and playoff standings files.</p>
         
+        {isProduction && (
+          <div className={styles.productionNotice}>
+            <p><strong>⚠️ Production Mode:</strong> File deletion is disabled due to read-only file system. To remove files, update your repository and redeploy.</p>
+          </div>
+        )}
+        
         <button 
           onClick={loadExistingFiles} 
           className={styles.refreshButton}
@@ -336,12 +345,14 @@ export default function AdminPage() {
                             <span>{race.track}</span>
                             <span>{race.date}</span>
                           </div>
-                          <button 
-                            onClick={() => deleteFile(race.filePath, 'race')}
-                            className={styles.deleteButton}
-                          >
-                            Delete
-                          </button>
+                          {!isProduction && (
+                            <button 
+                              onClick={() => deleteFile(race.filePath, 'race')}
+                              className={styles.deleteButton}
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -359,12 +370,14 @@ export default function AdminPage() {
                             <span>{playoff.updateDate}</span>
                             <span>{playoff.driversCount} drivers</span>
                           </div>
-                          <button 
-                            onClick={() => deleteFile(playoff.filePath, 'playoff round')}
-                            className={styles.deleteButton}
-                          >
-                            Delete
-                          </button>
+                          {!isProduction && (
+                            <button 
+                              onClick={() => deleteFile(playoff.filePath, 'playoff round')}
+                              className={styles.deleteButton}
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
