@@ -33,7 +33,7 @@ export default function RaceWinner({ league }: RaceWinnerProps) {
         setLoading(true)
         setError(null)
         
-        const response = await fetch(`/api/race-winners?series=${league === 'trucks' ? 'Truck' : 'ARCA'}&season=${league === 'trucks' ? 'CRL Truck Series Season 24' : '2024'}&latest=true`)
+        const response = await fetch(`/api/race-winners?series=${league === 'trucks' ? 'Truck' : 'ARCA'}&season=${league === 'trucks' ? 'CRL Truck Series Season 24' : 'CRL ARCA SEASON 2'}&latest=true`)
         
         if (!response.ok) {
           throw new Error('Failed to fetch race results')
@@ -46,7 +46,7 @@ export default function RaceWinner({ league }: RaceWinnerProps) {
           // New CSV format
           const resultsUrl = league === 'trucks' 
             ? 'https://www.simracerhub.com/season_race.php?series_id=10554'
-            : undefined;
+            : 'https://www.simracerhub.com/season_race.php?series_id=12526';
             
           setRaceResult({
             winner: data.latestWinner.driver,

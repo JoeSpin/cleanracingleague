@@ -150,7 +150,7 @@ export default function StandingsTable({ league }: StandingsTableProps) {
         setLoading(true)
         setError(null)
         
-        const response = await fetch(`/api/standings-csv?series=${league === 'trucks' ? 'Truck' : 'ARCA'}&season=${league === 'trucks' ? 'CRL Truck Series Season 24' : '2024'}`)
+        const response = await fetch(`/api/standings-csv?series=${league === 'trucks' ? 'Truck' : 'ARCA'}&season=${league === 'trucks' ? 'CRL Truck Series Season 24' : 'CRL ARCA SEASON 2'}`)
         
         if (!response.ok) {
           throw new Error('Failed to fetch standings')
