@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
-import { list, del } from '@vercel/blob';
+import { list, del, head } from '@vercel/blob';
 import { getSeasonData } from '@/lib/race-data/storage';
 
 // Force dynamic rendering for this API route
@@ -71,21 +71,12 @@ async function getFilesFromBlob() {
         if (fileName.endsWith('.json')) {
           // This is a season file, fetch it to get race details
           try {
-            const response = await fetch(blob.url);
-            if (!response.ok) {
-              console.warn(`Failed to fetch blob ${blob.pathname}: ${response.status} ${response.statusText}`);
-              continue;
-            }
+            console.log(`Loading season data for: ${series}/${fileName.replace('.json', '')}`);
             
-            const text = await response.text();
-            if (!text || text.includes('Blob not found')) {
-              console.warn(`Blob ${blob.pathname} not found or empty`);
-              continue;
-            }
+            // Use our existing getSeasonData function which handles blob access correctly
+            const seasonData = await getSeasonData(series, fileName.replace('.json', ''));
             
-            const seasonData = JSON.parse(text);
-            
-            if (seasonData.races && Array.isArray(seasonData.races)) {
+            if (seasonData && seasonData.races && Array.isArray(seasonData.races)) {
               const seasonKey = `${series}-${fileName.replace('.json', '')}`;
               
               if (!seasonGroups.has(seasonKey)) {
