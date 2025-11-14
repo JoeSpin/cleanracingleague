@@ -77,10 +77,55 @@ export interface SeasonData {
   lastUpdated: string;
 }
 
+// Save playoff standings data to Vercel Blob Storage
+async function savePlayoffDataToBlobStorage(playoffData: PlayoffStandingsData): Promise<void> {
+  try {
+    const series = playoffData.metadata.series.toLowerCase().replace(/\s+/g, '-');
+    const season = playoffData.metadata.season.toLowerCase().replace(/\s+/g, '-');
+    
+    // Load existing season data from blob storage
+    console.log('Loading existing season data for playoff update');
+    const seasonData = await getSeasonData(series, season);
+    
+    if (!seasonData) {
+      throw new Error(`No existing season data found for ${playoffData.metadata.series} ${playoffData.metadata.season}. Please upload race data first.`);
+    }
+    
+    console.log('Found season data with', seasonData.races?.length || 0, 'races');
+    
+    // Update the season data with playoff standings
+    // For now, we'll store the playoff data in a special property
+    (seasonData as any).playoffStandings = playoffData.standings;
+    (seasonData as any).playoffMetadata = playoffData.metadata;
+    seasonData.lastUpdated = new Date().toISOString();
+    
+    // Save updated season data back to blob storage
+    const fileName = `${series}/${season}.json`;
+    const blob = await put(fileName, JSON.stringify(seasonData, null, 2), {
+      access: 'public',
+      token: process.env.crl_READ_WRITE_TOKEN,
+      allowOverwrite: true
+    });
+    
+    console.log('Successfully saved playoff data to blob storage:', blob.url);
+    
+    // Also update summary if it exists
+    const summaryFileName = `${series}/${season}-summary.json`;
+    const summary = calculateSeasonSummary(seasonData.races, seasonData.series, seasonData.season);
+    
+    await put(summaryFileName, JSON.stringify(summary, null, 2), {
+      access: 'public',
+      token: process.env.crl_READ_WRITE_TOKEN,
+      allowOverwrite: true
+    });
+    
+  } catch (error: any) {
+    console.error('Error saving playoff data to blob storage:', error);
+    throw new Error(`Failed to save playoff data to blob storage: ${error.message}`);
+  }
+}
+
 export async function savePlayoffStandingsData(playoffData: PlayoffStandingsData): Promise<void> {
-  // Ensure data directory exists
-  await ensureDataDirectory();
-  
   console.log('savePlayoffStandingsData called with:', {
     hasMetadata: !!playoffData.metadata,
     metadata: playoffData.metadata,
@@ -90,6 +135,20 @@ export async function savePlayoffStandingsData(playoffData: PlayoffStandingsData
   if (!playoffData.metadata || !playoffData.metadata.series || !playoffData.metadata.season) {
     throw new Error(`Invalid playoff data: missing metadata. Got: ${JSON.stringify(playoffData.metadata)}`);
   }
+
+  // Use blob storage in production, local filesystem in development
+  const useBlob = process.env.VERCEL || process.env.NODE_ENV === 'production';
+  
+  if (useBlob) {
+    console.log('Saving playoff data to blob storage');
+    await savePlayoffDataToBlobStorage(playoffData);
+    return;
+  }
+  
+  console.log('Saving playoff data to local filesystem');
+  
+  // Ensure data directory exists
+  await ensureDataDirectory();
   
   const series = playoffData.metadata.series.toLowerCase().replace(/\s+/g, '-');
   const season = playoffData.metadata.season.toLowerCase().replace(/\s+/g, '-');
