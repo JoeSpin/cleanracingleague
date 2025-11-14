@@ -763,6 +763,12 @@ export async function getAllAvailableSeasons(): Promise<{ series: string; season
 // Vercel Blob Storage implementation
 async function saveToBlobStorage(raceData: RaceData, raceNumberOverride?: number): Promise<void> {
   console.log('=== Saving to Vercel Blob Storage ===');
+  console.log('Race data structure:', JSON.stringify(raceData, null, 2));
+  
+  if (!raceData.results || !Array.isArray(raceData.results)) {
+    console.error('Invalid race data structure - results is not an array:', raceData);
+    throw new Error('Invalid race data structure: results is not iterable');
+  }
   
   const series = raceData.metadata.series.toLowerCase().replace(/\s+/g, '-');
   const season = raceData.metadata.season.toLowerCase().replace(/\s+/g, '-');
