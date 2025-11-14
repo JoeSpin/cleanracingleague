@@ -757,13 +757,34 @@ async function ensureDataDirectory(): Promise<void> {
     cwd: process.cwd()
   });
   
-  // Try multiple potential data directory locations
-  const possibleDataDirs = [
-    path.join(process.cwd(), 'data'), // Normal case
-    path.resolve('./data'), // Relative to current directory
-    path.join(__dirname, '../../../data'), // Relative to this file
-    '/tmp/data' // Fallback for serverless environments
-  ];
+  // In development, always try to use the project's data directory first
+  const isLocalDev = !process.env.VERCEL && !process.env.LAMBDA_TASK_ROOT && process.env.NODE_ENV !== 'production';
+  
+  console.log('Environment detection:', {
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL: process.env.VERCEL,
+    LAMBDA_TASK_ROOT: process.env.LAMBDA_TASK_ROOT,
+    isLocalDev
+  });
+  
+  let possibleDataDirs: string[];
+  
+  if (isLocalDev) {
+    // For local development, prioritize local project directory
+    const projectDataDir = path.join(process.cwd(), 'data');
+    possibleDataDirs = [
+      projectDataDir, // Always try project directory first in dev
+      path.resolve('./data'), // Relative to current directory
+      path.join(__dirname, '../../../data') // Relative to this file
+    ];
+  } else {
+    // For production/serverless, use fallback paths
+    possibleDataDirs = [
+      '/tmp/data',
+      path.join(process.cwd(), 'data'),
+      path.resolve('./data')
+    ];
+  }
   
   console.log('Possible data directories:', possibleDataDirs);
   
@@ -789,7 +810,7 @@ async function ensureDataDirectory(): Promise<void> {
   }
   
   if (!dataDir) {
-    throw new Error('Could not create or access any data directory. Tried: ' + possibleDataDirs.join(', '));
+    throw new Error('Could not create or access data directory. Tried: ' + possibleDataDirs.join(', '));
   }
   
   // Update the global DATA_DIR
