@@ -917,16 +917,54 @@ async function saveToBlobStorage(raceData: RaceData, raceNumberOverride?: number
   console.log('Blob storage filename:', fileName);
   
   try {
-    // For now, just create new season data structure
-    const raceNumber = raceNumberOverride || 1;
+    // Load existing season data from blob storage if it exists
+    let seasonData;
+    try {
+      seasonData = await loadFromBlobStorage(series, season);
+      console.log('Loaded existing season data with', seasonData?.races?.length || 0, 'races');
+    } catch (error) {
+      console.log('No existing season data found, creating new season');
+      seasonData = null;
+    }
     
-    // Create season data in same format as local storage
-    const seasonData = {
-      series: raceData.metadata.series,
-      season: raceData.metadata.season,
-      races: [raceData], // Save the entire race data object
-      lastUpdated: new Date().toISOString()
-    };
+    if (!seasonData) {
+      // Create new season data structure
+      seasonData = {
+        series: raceData.metadata.series,
+        season: raceData.metadata.season,
+        races: [],
+        lastUpdated: new Date().toISOString()
+      };
+    }
+    
+    // Determine race number
+    const raceNumber = raceNumberOverride || (seasonData.races.length + 1);
+    raceData.metadata.raceNumber = raceNumber;
+    
+    // Check if race with this number already exists
+    const existingRaceIndex = seasonData.races.findIndex(race => 
+      race.metadata.raceNumber === raceNumber
+    );
+    
+    if (existingRaceIndex >= 0) {
+      // Replace existing race
+      console.log(`Replacing existing race ${raceNumber}`);
+      seasonData.races[existingRaceIndex] = raceData;
+    } else {
+      // Add new race
+      console.log(`Adding new race ${raceNumber}`);
+      seasonData.races.push(raceData);
+    }
+    
+    // Update timestamp
+    seasonData.lastUpdated = new Date().toISOString();
+    
+    console.log('Final season data structure:', {
+      series: seasonData.series,
+      season: seasonData.season,
+      totalRaces: seasonData.races.length,
+      raceNumbers: seasonData.races.map(r => r.metadata.raceNumber)
+    });
     
     // Save to blob storage
     const blob = await put(fileName, JSON.stringify(seasonData, null, 2), {
