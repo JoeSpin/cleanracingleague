@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import { list, del } from '@vercel/blob';
+import { getSeasonData } from '@/lib/race-data/storage';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -93,7 +94,7 @@ async function getFilesFromBlob() {
                   raceNumber: race.metadata?.raceNumber || 1,
                   track: race.metadata?.track || 'Unknown',
                   date: race.metadata?.raceDate || 'Unknown',
-                  filePath: blob.pathname
+                  filePath: `${blob.pathname}#race${race.metadata?.raceNumber || 1}` // Include race identifier
                 });
               }
             }
@@ -269,27 +270,81 @@ export async function DELETE(request: NextRequest) {
 
 async function deleteFromBlob(filePath: string) {
   try {
-    // Convert local path format to blob path if needed
-    const blobPath = filePath.replace(/\\/g, '/');
+    console.log('Deleting from blob storage:', filePath);
     
-    await del(blobPath, { token: process.env.crl_READ_WRITE_TOKEN });
-    
-    // Also try to delete summary file
-    const summaryPath = blobPath.replace('.json', '-summary.json');
-    try {
-      await del(summaryPath, { token: process.env.crl_READ_WRITE_TOKEN });
-    } catch (summaryError) {
-      console.warn('Summary file not found in blob storage:', summaryPath);
+    // Check if this is a race-specific deletion (contains #race)
+    if (filePath.includes('#race')) {
+      const [seasonPath, raceId] = filePath.split('#');
+      const raceNumber = parseInt(raceId.replace('race', ''));
+      
+      console.log('Race-specific deletion:', { seasonPath, raceNumber });
+      
+      // Load existing season data
+      const parts = seasonPath.split('/');
+      const seriesSlug = parts[0];
+      const seasonSlug = parts[1].replace('.json', '');
+      
+      console.log('Loading season data for deletion:', { seriesSlug, seasonSlug });
+      
+      const seasonData = await getSeasonData(seriesSlug, seasonSlug);
+      if (!seasonData || !seasonData.races) {
+        return NextResponse.json(
+          { error: `Season data not found for ${seriesSlug}/${seasonSlug}` },
+          { status: 404 }
+        );
+      }
+      
+      console.log('Found season data with', seasonData.races.length, 'races');
+      
+      // Remove the specific race
+      const originalLength = seasonData.races.length;
+      seasonData.races = seasonData.races.filter((race: any) => race.metadata?.raceNumber !== raceNumber);
+      
+      if (seasonData.races.length === originalLength) {
+        return NextResponse.json(
+          { error: `Race ${raceNumber} not found in season` },
+          { status: 404 }
+        );
+      }
+      
+      // Update timestamp
+      seasonData.lastUpdated = new Date().toISOString();
+      
+      // Save updated season data back to blob storage
+      const { put } = await import('@vercel/blob');
+      await put(seasonPath, JSON.stringify(seasonData, null, 2), {
+        access: 'public',
+        token: process.env.crl_READ_WRITE_TOKEN,
+        allowOverwrite: true
+      });
+      
+      return NextResponse.json({ 
+        success: true,
+        message: `Race ${raceNumber} deleted successfully from cloud storage!`
+      });
+    } else {
+      // Delete entire season file
+      const blobPath = filePath.replace(/\\/g, '/');
+      
+      await del(blobPath, { token: process.env.crl_READ_WRITE_TOKEN });
+      
+      // Also try to delete summary file
+      const summaryPath = blobPath.replace('.json', '-summary.json');
+      try {
+        await del(summaryPath, { token: process.env.crl_READ_WRITE_TOKEN });
+      } catch (summaryError) {
+        console.warn('Summary file not found in blob storage:', summaryPath);
+      }
+      
+      return NextResponse.json({ 
+        success: true,
+        message: 'Season file deleted successfully from cloud storage!'
+      });
     }
-    
-    return NextResponse.json({ 
-      success: true,
-      message: 'File deleted successfully from cloud storage! Changes are live immediately.'
-    });
   } catch (error: any) {
     console.error('Blob deletion failed:', error);
     return NextResponse.json(
-      { error: `Failed to delete file from cloud storage: ${error.message}` },
+      { error: `Failed to delete from cloud storage: ${error.message}` },
       { status: 500 }
     );
   }
