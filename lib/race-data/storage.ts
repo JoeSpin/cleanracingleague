@@ -846,7 +846,44 @@ export async function getSeasonSummary(series: string, season: string): Promise<
     // Get season data and regenerate summary
     const seasonData = await loadFromBlobStorage(formattedSeries, formattedSeason);
     if (seasonData && seasonData.races && seasonData.races.length > 0) {
-      return calculateSeasonSummary(seasonData.races, seasonData.series, seasonData.season);
+      let summary = calculateSeasonSummary(seasonData.races, seasonData.series, seasonData.season);
+      
+      // Check if we have playoff data stored in the season data
+      const seasonDataAny = seasonData as any;
+      if (seasonDataAny.playoffStandings && seasonDataAny.playoffMetadata) {
+        console.log('Found playoff data in season, applying to summary');
+        
+        // Apply playoff data to the summary
+        summary.isPlayoffSeason = true;
+        summary.currentPlayoffRound = getPlayoffRoundFromName(seasonDataAny.playoffMetadata.playoffRound);
+        
+        // Update standings with playoff data if available
+        // The playoff standings should override the calculated standings
+        if (seasonDataAny.playoffStandings && Array.isArray(seasonDataAny.playoffStandings)) {
+          summary.currentStandings = seasonDataAny.playoffStandings.map((standing: any, index: number) => ({
+            driver: standing.driver,
+            totalPoints: standing.points || standing.totalPoints || 0,
+            wins: standing.wins || 0,
+            poles: standing.poles || 0,
+            top5s: standing.top5s || 0,
+            top10s: standing.top10s || 0,
+            dnfs: standing.dnfs || 0,
+            races: standing.races || 0,
+            averageFinish: standing.averageFinish || 0,
+            averageStart: standing.averageStart || 0,
+            totalLapsLed: standing.lapsLed || standing.totalLapsLed || 0,
+            totalIncidents: standing.incidents || standing.totalIncidents || 0,
+            fastestLaps: standing.fastestLaps || 0,
+            stageWins: standing.stageWins || 0,
+            totalStagePoints: standing.stagePoints || standing.totalStagePoints || 0,
+            totalBonusPoints: standing.bonusPoints || standing.totalBonusPoints || 0,
+            positionChange: standing.change || '',
+            currentPosition: index + 1
+          }));
+        }
+      }
+      
+      return summary;
     }
     return null;
   } else {
