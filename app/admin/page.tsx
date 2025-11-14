@@ -23,16 +23,31 @@ export default function AdminPage() {
   const isProduction = process.env.NODE_ENV === 'production';
 
   // Production workflow notice
-  const ProductionNotice = () => (
-    <div className={styles.notice}>
-      <h3>🚀 Production Environment</h3>
-      <p>File uploads work directly in production! Files are automatically saved to Vercel Blob Storage.</p>
-      <p>No additional steps needed - upload and your changes are live immediately!</p>
-      {!process.env.CRL_READ_WRITE_TOKEN && (
-        <p style={{color: '#d73a49'}}>⚠️ Note: Blob storage not configured. Files will be saved temporarily.</p>
-      )}
-    </div>
-  );
+  const ProductionNotice = () => {
+    const [blobConfigured, setBlobConfigured] = useState<boolean | null>(null);
+    
+    useEffect(() => {
+      // Check blob storage configuration at runtime
+      fetch('/api/status')
+        .then(res => res.json())
+        .then(data => setBlobConfigured(data.blobStorage))
+        .catch(() => setBlobConfigured(false));
+    }, []);
+    
+    return (
+      <div className={styles.notice}>
+        <h3>🚀 Production Environment</h3>
+        <p>File uploads work directly in production! Files are automatically saved to Vercel Blob Storage.</p>
+        <p>No additional steps needed - upload and your changes are live immediately!</p>
+        {blobConfigured === false && (
+          <p style={{color: '#d73a49'}}>⚠️ Note: Blob storage not configured. Files will be saved temporarily.</p>
+        )}
+        {blobConfigured === true && (
+          <p style={{color: '#28a745'}}>✅ Blob storage is configured and ready!</p>
+        )}
+      </div>
+    );
+  };
 
   // Handle password authentication
   const handlePasswordSubmit = (e: React.FormEvent) => {
