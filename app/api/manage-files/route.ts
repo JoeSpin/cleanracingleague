@@ -157,6 +157,17 @@ export async function DELETE(request: NextRequest) {
       const raceIndex = parseInt(raceId.replace('race-', ''));
       
       const fullPath = path.join(DATA_DIR, jsonPath);
+      
+      // Check if file exists
+      try {
+        await fs.access(fullPath);
+      } catch {
+        return NextResponse.json(
+          { error: `File not found: ${jsonPath}` },
+          { status: 404 }
+        );
+      }
+      
       const content = await fs.readFile(fullPath, 'utf-8');
       const data = JSON.parse(content);
       
@@ -172,18 +183,46 @@ export async function DELETE(request: NextRequest) {
         });
         
         await fs.writeFile(fullPath, JSON.stringify(data, null, 2));
+        
+        // Note: Summary file may need manual regeneration after race deletion
+      } else {
+        return NextResponse.json(
+          { error: `Race ${raceIndex + 1} not found in file` },
+          { status: 404 }
+        );
       }
     } else {
       // Delete entire file
       const fullPath = path.join(DATA_DIR, filePath);
+      
+      // Check if file exists
+      try {
+        await fs.access(fullPath);
+      } catch {
+        return NextResponse.json(
+          { error: `File not found: ${filePath}` },
+          { status: 404 }
+        );
+      }
+      
+      // Ensure we're only deleting files within the data directory
+      const relativePath = path.relative(DATA_DIR, fullPath);
+      if (relativePath.startsWith('..')) {
+        return NextResponse.json(
+          { error: 'Invalid file path' },
+          { status: 400 }
+        );
+      }
+      
       await fs.unlink(fullPath);
     }
     
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting file:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to delete file' },
+      { error: `Failed to delete file: ${errorMessage}` },
       { status: 500 }
     );
   }

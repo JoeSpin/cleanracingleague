@@ -70,20 +70,26 @@ export default function AdminPage() {
     if (!confirm(`Are you sure you want to delete this ${fileType}?`)) return;
     
     try {
+      setError(null); // Clear any previous errors
       const response = await fetch('/api/manage-files', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath })
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
         loadExistingFiles(); // Reload the file list
+        // Show success message briefly
+        setResult({ message: `Successfully deleted ${fileType}` });
+        setTimeout(() => setResult(null), 3000);
       } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to delete file');
+        setError(data.error || `Failed to delete ${fileType}. Status: ${response.status}`);
       }
     } catch (err) {
-      setError('Failed to delete file');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Network error while deleting ${fileType}: ${errorMessage}`);
     }
   };
 
