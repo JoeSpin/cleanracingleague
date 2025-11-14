@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       await saveRaceData(raceData, raceNumber);
       
       // Also backup to Vercel Blob in production 
-      if (process.env.NODE_ENV === 'production' && process.env.CRL_READ_WRITE_TOKEN) {
+      if (process.env.NODE_ENV === 'production' && process.env.crl_READ_WRITE_TOKEN) {
         try {
           const seriesFolder = raceData.metadata.series.toLowerCase().replace(/\s+/g, '-');
           const seasonKey = raceData.metadata.season.toLowerCase().replace(/\s+/g, '-');
