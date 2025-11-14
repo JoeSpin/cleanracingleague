@@ -343,12 +343,6 @@ export default function AdminPage() {
         <h2>Manage Existing Files</h2>
         <p>View and manage race data and playoff standings files.</p>
         
-        {isProduction && (
-          <div className={styles.productionNotice}>
-            <p><strong>⚠️ Production Mode:</strong> File deletion is disabled due to read-only file system. To remove files, update your repository and redeploy.</p>
-          </div>
-        )}
-        
         <button 
           onClick={loadExistingFiles} 
           className={styles.refreshButton}
@@ -374,14 +368,13 @@ export default function AdminPage() {
                             <span>{race.track}</span>
                             <span>{race.date}</span>
                           </div>
-                          {!isProduction && (
-                            <button 
-                              onClick={() => deleteFile(race.filePath, 'race')}
-                              className={styles.deleteButton}
-                            >
-                              Delete
-                            </button>
-                          )}
+                          <button 
+                            onClick={() => deleteFile(race.filePath, 'race')}
+                            className={styles.deleteButton}
+                            title="Delete this race"
+                          >
+                            🗑️
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -399,14 +392,13 @@ export default function AdminPage() {
                             <span>{playoff.updateDate}</span>
                             <span>{playoff.driversCount} drivers</span>
                           </div>
-                          {!isProduction && (
-                            <button 
-                              onClick={() => deleteFile(playoff.filePath, 'playoff round')}
-                              className={styles.deleteButton}
-                            >
-                              Delete
-                            </button>
-                          )}
+                          <button 
+                            onClick={() => deleteFile(playoff.filePath, 'playoff round')}
+                            className={styles.deleteButton}
+                            title="Delete this playoff round"
+                          >
+                            🗑️
+                          </button>
                         </div>
                       ))}
                     </div>

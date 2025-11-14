@@ -58,75 +58,80 @@ export async function GET() {
             
             // Check if this is a playoff file
             if (fileName.includes('-playoff-')) {
-              // Extract season from filename (e.g., crl-truck-series-season-24-playoff-123.json)
-              const seasonMatch = fileName.match(/^(.+?)-playoff-/);
-              if (seasonMatch) {
-                const season = seasonMatch[1];
-                
-                if (!seasonGroups.has(season)) {
-                  seasonGroups.set(season, {
-                    series: seriesDir.name,
-                    season: season,
-                    races: [],
-                    playoffs: []
-                  });
-                }
-                
-                const fileInfo = seasonGroups.get(season)!;
-                fileInfo.playoffs.push({
-                  round: data.metadata?.playoffRound || 'Unknown Round',
-                  updateDate: data.metadata?.updateDate || 'Unknown Date',
-                  driversCount: data.standings?.length || 0,
-                  filePath: path.relative(DATA_DIR, filePath)
-                });
-              }
-            } else if (fileName.includes('-summary.json')) {
-              // Skip summary files for now
-              continue;
-            } else {
-              // Regular season file
-              const season = fileName.replace('.json', '');
+              // Handle playoff standings file
+              const season = data.metadata?.season || 'Unknown Season';
+              const series = data.metadata?.series || seriesDir.name;
               
-              if (!seasonGroups.has(season)) {
-                seasonGroups.set(season, {
-                  series: seriesDir.name,
+              let fileInfo = seasonGroups.get(season);
+              if (!fileInfo) {
+                fileInfo = {
+                  series: series,
                   season: season,
                   races: [],
                   playoffs: []
-                });
+                };
+                seasonGroups.set(season, fileInfo);
               }
               
-              const fileInfo = seasonGroups.get(season)!;
+              fileInfo.playoffs.push({
+                round: data.metadata?.playoffRound || `Round ${data.metadata?.round || '?'}`,
+                updateDate: data.metadata?.updateDate || new Date().toISOString().split('T')[0],
+                driversCount: data.standings?.length || 0,
+                filePath: path.relative(DATA_DIR, filePath).replace(/\\/g, '/')
+              });
+            } else if (!fileName.includes('-summary')) {
+              // Handle regular race data file
+              const season = data.metadata?.season || data.season || 'Unknown Season';
+              const series = data.metadata?.series || data.series || seriesDir.name;
               
-              // Add races from this season file
+              let fileInfo = seasonGroups.get(season);
+              if (!fileInfo) {
+                fileInfo = {
+                  series: series,
+                  season: season,
+                  races: [],
+                  playoffs: []
+                };
+                seasonGroups.set(season, fileInfo);
+              }
+              
+              // Add races from this file
               if (data.races && Array.isArray(data.races)) {
-                for (const [index, race] of data.races.entries()) {
-                  fileInfo.races.push({
+                data.races.forEach((race: any, index: number) => {
+                  fileInfo!.races.push({
                     raceNumber: race.metadata?.raceNumber || index + 1,
                     track: race.metadata?.track || 'Unknown Track',
-                    date: race.metadata?.raceDate || 'Unknown Date',
-                    filePath: path.relative(DATA_DIR, filePath) + `#race-${index}`
+                    date: race.metadata?.raceDate || race.metadata?.date || 'Unknown Date',
+                    filePath: path.relative(DATA_DIR, filePath).replace(/\\/g, '/')
                   });
-                }
+                });
               }
             }
-          } catch (error) {
-            console.warn(`Failed to parse file ${fileName}:`, error);
+          } catch (parseError) {
+            console.warn(`Failed to parse file ${fileName}:`, parseError);
           }
         }
       }
       
-      files.push(...seasonGroups.values());
+      // Add all season groups to files array
+      for (const fileInfo of seasonGroups.values()) {
+        // Sort races by race number
+        fileInfo.races.sort((a, b) => a.raceNumber - b.raceNumber);
+        files.push(fileInfo);
+      }
     }
     
     // Sort files by series and season
     files.sort((a, b) => {
-      if (a.series !== b.series) return a.series.localeCompare(b.series);
+      if (a.series !== b.series) {
+        return a.series.localeCompare(b.series);
+      }
       return a.season.localeCompare(b.season);
     });
     
-    // Create response with cache-busting headers
     const response = NextResponse.json({ files });
+    
+    // Add cache-busting headers
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
@@ -142,18 +147,10 @@ export async function GET() {
 }
 
 export async function DELETE(request: NextRequest) {
-  // Check if we're in a read-only environment (like Vercel production)
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
-  
-  if (isProduction) {
-    return NextResponse.json(
-      { error: 'File deletion is not available in production environment due to read-only file system. Please redeploy with updated files instead.' },
-      { status: 403 }
-    );
-  }
-
   try {
-    const { filePath } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const filePath = searchParams.get('filePath');
+    const isProduction = process.env.NODE_ENV === 'production';
     
     if (!filePath) {
       return NextResponse.json(
@@ -161,52 +158,34 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
-    
-    // Handle race deletion (format: path#race-index)
-    if (filePath.includes('#race-')) {
-      const [jsonPath, raceId] = filePath.split('#');
-      const raceIndex = parseInt(raceId.replace('race-', ''));
-      
-      const fullPath = path.join(DATA_DIR, jsonPath);
-      
-      // Check if file exists
+
+    if (isProduction && process.env.crl_READ_WRITE_TOKEN) {
+      // Delete from Vercel Blob in production
       try {
-        await fs.access(fullPath);
-      } catch {
-        return NextResponse.json(
-          { error: `File not found: ${jsonPath}` },
-          { status: 404 }
-        );
-      }
-      
-      const content = await fs.readFile(fullPath, 'utf-8');
-      const data = JSON.parse(content);
-      
-      if (data.races && data.races[raceIndex]) {
-        // Remove the specific race
-        data.races.splice(raceIndex, 1);
+        await del(filePath);
         
-        // Re-number races
-        data.races.forEach((race: any, index: number) => {
-          if (race.metadata) {
-            race.metadata.raceNumber = index + 1;
-          }
+        // Also try to delete summary file
+        const summaryPath = filePath.replace('.json', '-summary.json');
+        try {
+          await del(summaryPath);
+        } catch {
+          // Summary might not exist
+        }
+        
+        return NextResponse.json({ 
+          success: true,
+          message: 'File deleted successfully! Changes are live immediately.'
         });
-        
-        await fs.writeFile(fullPath, JSON.stringify(data, null, 2));
-        
-        // Note: Summary file may need manual regeneration after race deletion
-      } else {
+      } catch (error) {
         return NextResponse.json(
-          { error: `Race ${raceIndex + 1} not found in file` },
-          { status: 404 }
+          { error: 'Failed to delete file from storage' },
+          { status: 500 }
         );
       }
     } else {
-      // Delete entire file
+      // Delete from local filesystem in development
       const fullPath = path.join(DATA_DIR, filePath);
       
-      // Check if file exists
       try {
         await fs.access(fullPath);
       } catch {
@@ -216,7 +195,6 @@ export async function DELETE(request: NextRequest) {
         );
       }
       
-      // Ensure we're only deleting files within the data directory
       const relativePath = path.relative(DATA_DIR, fullPath);
       if (relativePath.startsWith('..')) {
         return NextResponse.json(
@@ -226,9 +204,21 @@ export async function DELETE(request: NextRequest) {
       }
       
       await fs.unlink(fullPath);
+      
+      // Also delete summary file if it exists
+      const summaryPath = fullPath.replace('.json', '-summary.json');
+      try {
+        await fs.access(summaryPath);
+        await fs.unlink(summaryPath);
+      } catch {
+        // Summary file doesn't exist, that's okay
+      }
+      
+      return NextResponse.json({ 
+        success: true,
+        message: 'File deleted successfully!'
+      });
     }
-    
-    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting file:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
