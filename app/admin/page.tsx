@@ -45,7 +45,15 @@ export default function AdminPage() {
   const loadExistingFiles = async () => {
     setLoadingFiles(true);
     try {
-      const response = await fetch('/api/manage-files');
+      // Add cache-busting timestamp and headers
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/manage-files?_t=${timestamp}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       const data = await response.json();
       if (response.ok) {
         setExistingFiles(data.files || []);
@@ -118,6 +126,8 @@ export default function AdminPage() {
         // Reset file input
         const fileInput = document.getElementById('csvFile') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
+        // Reload the file list to show updated files
+        loadExistingFiles();
       } else {
         setError(data.error || 'Upload failed');
       }

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 const DATA_DIR = path.join(process.cwd(), 'data');
 
 interface FileInfo {
@@ -121,7 +124,13 @@ export async function GET() {
       return a.season.localeCompare(b.season);
     });
     
-    return NextResponse.json({ files });
+    // Create response with cache-busting headers
+    const response = NextResponse.json({ files });
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
   } catch (error) {
     console.error('Error loading files:', error);
     return NextResponse.json(
