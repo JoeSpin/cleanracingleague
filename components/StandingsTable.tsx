@@ -179,7 +179,14 @@ export default function StandingsTable({ league }: StandingsTableProps) {
           incidents: standing.totalIncidents
         }));
         
-        setDrivers(mappedDrivers)
+        // If no drivers found, show helpful message
+        if (mappedDrivers.length === 0) {
+          setError(`No race data found for ${league.toUpperCase()}. Please upload race CSV files through the admin interface.`);
+          setDrivers([]);
+        } else {
+          setDrivers(mappedDrivers);
+          setError(null); // Clear any previous errors
+        }
         setTeams([]) // Teams not implemented in CSV format yet
         setLastUpdated(data.lastUpdated)
         setTotalRaces(data.totalRaces || 0)
@@ -349,8 +356,17 @@ export default function StandingsTable({ league }: StandingsTableProps) {
       
       {error && (
         <div className={styles.error}>
-          <p>{error}</p>
-          <p>Displaying cached data if available</p>
+          <p><strong>⚠️ {error}</strong></p>
+          {error.includes('No race data') && (
+            <div style={{marginTop: '10px', fontSize: '0.9em', color: '#ccc'}}>
+              <p>To fix this:</p>
+              <ol style={{textAlign: 'left', marginLeft: '20px'}}>
+                <li>Go to the <a href="/admin" style={{color: 'var(--crl-gold)'}}>admin interface</a></li>
+                <li>Upload race result CSV files for {league.toUpperCase()}</li>
+                <li>Make sure the series name in the CSV matches "{league === 'trucks' ? 'Truck' : 'ARCA'}"</li>
+              </ol>
+            </div>
+          )}
         </div>
       )}
       
