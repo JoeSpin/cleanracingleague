@@ -753,17 +753,17 @@ async function ensureDataDirectory(): Promise<void> {
   console.log('Environment check:', {
     NODE_ENV: process.env.NODE_ENV,
     VERCEL: process.env.VERCEL,
+    LAMBDA_TASK_ROOT: process.env.LAMBDA_TASK_ROOT,
     platform: process.platform,
     cwd: process.cwd()
   });
   
-  // In development, always try to use the project's data directory first
-  const isLocalDev = !process.env.VERCEL && !process.env.LAMBDA_TASK_ROOT && process.env.NODE_ENV !== 'production';
+  // Force local development when running from Windows and cwd contains OneDrive
+  const isWindowsLocal = process.platform === 'win32' && process.cwd().includes('OneDrive');
+  const isLocalDev = isWindowsLocal || (!process.env.VERCEL && !process.env.LAMBDA_TASK_ROOT && process.env.NODE_ENV !== 'production');
   
   console.log('Environment detection:', {
-    NODE_ENV: process.env.NODE_ENV,
-    VERCEL: process.env.VERCEL,
-    LAMBDA_TASK_ROOT: process.env.LAMBDA_TASK_ROOT,
+    isWindowsLocal,
     isLocalDev
   });
   
@@ -777,6 +777,7 @@ async function ensureDataDirectory(): Promise<void> {
       path.resolve('./data'), // Relative to current directory
       path.join(__dirname, '../../../data') // Relative to this file
     ];
+    console.log('Using LOCAL DEVELOPMENT paths');
   } else {
     // For production/serverless, use fallback paths
     possibleDataDirs = [
@@ -784,6 +785,7 @@ async function ensureDataDirectory(): Promise<void> {
       path.join(process.cwd(), 'data'),
       path.resolve('./data')
     ];
+    console.log('Using PRODUCTION/SERVERLESS paths');
   }
   
   console.log('Possible data directories:', possibleDataDirs);
