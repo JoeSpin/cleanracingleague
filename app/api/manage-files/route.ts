@@ -72,7 +72,18 @@ async function getFilesFromBlob() {
           // This is a season file, fetch it to get race details
           try {
             const response = await fetch(blob.url);
-            const seasonData = await response.json();
+            if (!response.ok) {
+              console.warn(`Failed to fetch blob ${blob.pathname}: ${response.status} ${response.statusText}`);
+              continue;
+            }
+            
+            const text = await response.text();
+            if (!text || text.includes('Blob not found')) {
+              console.warn(`Blob ${blob.pathname} not found or empty`);
+              continue;
+            }
+            
+            const seasonData = JSON.parse(text);
             
             if (seasonData.races && Array.isArray(seasonData.races)) {
               const seasonKey = `${series}-${fileName.replace('.json', '')}`;
@@ -99,7 +110,7 @@ async function getFilesFromBlob() {
               }
             }
           } catch (error) {
-            console.error(`Error parsing season file ${blob.pathname}:`, error);
+            console.error(`Error parsing season file ${blob.pathname}:`, error instanceof Error ? error.message : String(error));
           }
         }
       }
