@@ -192,7 +192,15 @@ function getPlayoffRoundFromName(roundName: string): 'regular' | 'round1' | 'rou
 }
 
 export async function saveRaceData(raceData: RaceData, raceNumberOverride?: number): Promise<void> {
+  console.log('=== saveRaceData called ===');
+  console.log('Race data:', {
+    series: raceData.metadata.series,
+    season: raceData.metadata.season,
+    track: raceData.metadata.track
+  });
+  
   // Ensure data directory exists
+  console.log('Ensuring data directory exists...');
   await ensureDataDirectory();
   
   const series = raceData.metadata.series.toLowerCase().replace(/\s+/g, '-');
@@ -200,11 +208,22 @@ export async function saveRaceData(raceData: RaceData, raceNumberOverride?: numb
   const seriesDir = path.join(DATA_DIR, series);
   const seasonFile = path.join(seriesDir, `${season}.json`);
   
+  console.log('Paths:', {
+    DATA_DIR,
+    series,
+    season,
+    seriesDir,
+    seasonFile
+  });
+  
   // Ensure series directory exists
+  console.log('Creating series directory:', seriesDir);
   try {
     await fs.mkdir(seriesDir, { recursive: true });
+    console.log('Series directory created successfully');
   } catch (error) {
-    // Directory might already exist
+    console.error('Failed to create series directory:', error);
+    throw new Error(`Failed to create directory ${seriesDir}: ${error}`);
   }
   
   // Load existing season data or create new
@@ -291,12 +310,30 @@ export async function saveRaceData(raceData: RaceData, raceNumberOverride?: numb
   seasonData.lastUpdated = new Date().toISOString();
   
   // Save updated season data
-  await fs.writeFile(seasonFile, JSON.stringify(seasonData, null, 2));
+  console.log('Writing season file:', seasonFile);
+  try {
+    await fs.writeFile(seasonFile, JSON.stringify(seasonData, null, 2));
+    console.log('Season file written successfully');
+  } catch (error) {
+    console.error('Failed to write season file:', error);
+    throw new Error(`Failed to write season file ${seasonFile}: ${error}`);
+  }
   
   // Also save a comprehensive season summary with playoff information
+  console.log('Calculating season summary...');
   const summary = await calculateSeasonSummary(seasonData.races, raceData.metadata.series, raceData.metadata.season);
   const summaryFile = path.join(seriesDir, `${season}-summary.json`);
-  await fs.writeFile(summaryFile, JSON.stringify(summary, null, 2));
+  
+  console.log('Writing summary file:', summaryFile);
+  try {
+    await fs.writeFile(summaryFile, JSON.stringify(summary, null, 2));
+    console.log('Summary file written successfully');
+  } catch (error) {
+    console.error('Failed to write summary file:', error);
+    throw new Error(`Failed to write summary file ${summaryFile}: ${error}`);
+  }
+  
+  console.log('=== saveRaceData completed successfully ===');
 }
 
 export function calculateSeasonSummary(races: RaceData[], series: string, season: string): SeasonSummary {
@@ -703,9 +740,12 @@ export async function getAllAvailableSeasons(): Promise<{ series: string; season
 }
 
 async function ensureDataDirectory(): Promise<void> {
+  console.log('Ensuring DATA_DIR exists:', DATA_DIR);
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
+    console.log('DATA_DIR created/verified successfully');
   } catch (error) {
-    // Directory might already exist
+    console.error('Failed to create DATA_DIR:', error);
+    throw new Error(`Failed to create data directory ${DATA_DIR}: ${error}`);
   }
 }
