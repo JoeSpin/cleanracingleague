@@ -54,6 +54,7 @@ interface StandingsResponse {
   isPlayoffSeason?: boolean // Whether playoffs have started
   currentPlayoffRound?: string // Current playoff round
   lastUpdated: string
+  error?: string // Error message if any
 }
 
 export default function StandingsTable({ league }: StandingsTableProps) {
@@ -157,6 +158,11 @@ export default function StandingsTable({ league }: StandingsTableProps) {
         }
         
         const data: StandingsResponse = await response.json()
+        
+        // Check if API returned an error message
+        if (data.error) {
+          setError(data.error);
+        }
         
         // Map CSV standings format to component format
         const mappedDrivers = (data.standings || []).map((standing: any, index: number) => ({

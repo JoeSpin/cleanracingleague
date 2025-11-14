@@ -763,7 +763,10 @@ async function loadFromBlobStorage(seriesSlug: string, seasonSlug: string): Prom
     return data;
     
   } catch (error) {
-    console.error('Error loading from blob storage:', error);
+    console.error('Error loading from blob storage:', {
+      requestedFile: `${seriesSlug}/${seasonSlug}.json`,
+      error: error instanceof Error ? error.message : error
+    });
     return null;
   }
 }
@@ -840,16 +843,42 @@ export async function getSeasonSummary(series: string, season: string): Promise<
   // Use blob storage in production, local filesystem in development
   const useBlob = process.env.VERCEL || process.env.NODE_ENV === 'production';
   
+  console.log(`getSeasonSummary called: ${series} ${season} (formatted: ${formattedSeries} ${formattedSeason})`);
+  console.log(`Using blob storage: ${useBlob}`);
+  
   if (useBlob) {
     console.log('Loading season summary from blob storage');
     
     // Get season data and regenerate summary
     const seasonData = await loadFromBlobStorage(formattedSeries, formattedSeason);
+    console.log('Season data loaded:', {
+      hasData: !!seasonData,
+      hasRaces: !!seasonData?.races,
+      raceCount: seasonData?.races?.length || 0
+    });
+    
     if (seasonData && seasonData.races && seasonData.races.length > 0) {
       let summary = calculateSeasonSummary(seasonData.races, seasonData.series, seasonData.season);
+      console.log('Summary calculated:', {
+        hasStandings: !!summary.currentStandings,
+        standingsCount: summary.currentStandings?.length || 0,
+        firstDriver: summary.currentStandings?.[0]?.driver || 'none'
+      });
+      
+      // Ensure standings exist before processing
+      if (!summary.currentStandings || summary.currentStandings.length === 0) {
+        console.error('calculateSeasonSummary returned empty standings!');
+        return null;
+      }
       
       // Check if we have playoff data stored in the season data
       const seasonDataAny = seasonData as any;
+      console.log('Checking for playoff data:', {
+        hasPlayoffStandings: !!seasonDataAny.playoffStandings,
+        hasPlayoffMetadata: !!seasonDataAny.playoffMetadata,
+        playoffCount: seasonDataAny.playoffStandings?.length || 0
+      });
+      
       if (seasonDataAny.playoffStandings && seasonDataAny.playoffMetadata) {
         console.log('Found playoff data in season, applying to summary');
         
@@ -857,33 +886,61 @@ export async function getSeasonSummary(series: string, season: string): Promise<
         summary.isPlayoffSeason = true;
         summary.currentPlayoffRound = getPlayoffRoundFromName(seasonDataAny.playoffMetadata.playoffRound);
         
-        // Update standings with playoff data if available
-        // The playoff standings should override the calculated standings
+        // Update standings by ADDING playoff points to existing totals
         if (seasonDataAny.playoffStandings && Array.isArray(seasonDataAny.playoffStandings)) {
-          summary.currentStandings = seasonDataAny.playoffStandings.map((standing: any, index: number) => ({
-            driver: standing.driver,
-            totalPoints: standing.points || standing.totalPoints || 0,
-            wins: standing.wins || 0,
-            poles: standing.poles || 0,
-            top5s: standing.top5s || 0,
-            top10s: standing.top10s || 0,
-            dnfs: standing.dnfs || 0,
-            races: standing.races || 0,
-            averageFinish: standing.averageFinish || 0,
-            averageStart: standing.averageStart || 0,
-            totalLapsLed: standing.lapsLed || standing.totalLapsLed || 0,
-            totalIncidents: standing.incidents || standing.totalIncidents || 0,
-            fastestLaps: standing.fastestLaps || 0,
-            stageWins: standing.stageWins || 0,
-            totalStagePoints: standing.stagePoints || standing.totalStagePoints || 0,
-            totalBonusPoints: standing.bonusPoints || standing.totalBonusPoints || 0,
-            positionChange: standing.change || '',
-            currentPosition: index + 1
-          }));
+          console.log('Adding playoff points to calculated standings');
+          
+          // Create a map of playoff points by driver
+          const playoffPointsMap = new Map<string, number>();
+          seasonDataAny.playoffStandings.forEach((playoffStanding: any) => {
+            const playoffPointsFromCSV = playoffStanding.playoffPoints || playoffStanding.points || 0;
+            playoffPointsMap.set(playoffStanding.driver, playoffPointsFromCSV);
+          });
+          
+          // Add playoff points to existing standings
+          summary.currentStandings = summary.currentStandings.map((driver, index) => {
+            const playoffPointsFromCSV = playoffPointsMap.get(driver.driver) || 0;
+            
+            // Calculate season playoff bonus points using configuration (same as local version)
+            const { bonusPoints } = PLAYOFF_CONFIG;
+            const playoffBonusPoints = (driver.wins * bonusPoints.winPoints) + ((driver.stageWins || 0) * bonusPoints.stageWinPoints);
+            
+            // ADD playoff points to existing season total (don't replace)
+            const newTotalPoints = driver.totalPoints + playoffPointsFromCSV + playoffBonusPoints;
+            
+            console.log(`${driver.driver}: Season=${driver.totalPoints}, CSV Playoff=${playoffPointsFromCSV}, Bonus=${playoffBonusPoints} (${driver.wins} wins × ${bonusPoints.winPoints} + ${driver.stageWins || 0} stage wins × ${bonusPoints.stageWinPoints}), New Total=${newTotalPoints}`);
+            
+            return {
+              ...driver,
+              totalPoints: newTotalPoints,
+              positionChange: '' // Will be recalculated after sorting
+            };
+          });
+          
+          // Re-sort by new total points (season + playoff)
+          summary.currentStandings.sort((a, b) => b.totalPoints - a.totalPoints);
+          
+          // Recalculate position changes based on new order
+          summary.currentStandings.forEach((driver, newIndex) => {
+            // For simplicity, just mark as playoff-adjusted
+            driver.positionChange = 'PO';
+          });
         }
       }
       
+      console.log('Final summary:', {
+        standingsCount: summary.currentStandings?.length || 0,
+        isPlayoffSeason: summary.isPlayoffSeason,
+        currentPlayoffRound: summary.currentPlayoffRound
+      });
+      
       return summary;
+    } else {
+      console.error('No season data found in blob storage:', {
+        hasSeasonData: !!seasonData,
+        hasRaces: !!seasonData?.races,
+        raceCount: seasonData?.races?.length || 0
+      });
     }
     return null;
   } else {
