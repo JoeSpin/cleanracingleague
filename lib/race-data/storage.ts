@@ -3,7 +3,12 @@ import path from 'path';
 import { RaceData, DriverStanding, calculateSeasonStandings, PlayoffStandingsData } from './csv-parser';
 import { PLAYOFF_CONFIG } from '../playoff-config';
 
+// Debug current working directory
+console.log('process.cwd():', process.cwd());
+console.log('__dirname equivalent:', path.dirname(__filename));
+
 const DATA_DIR = path.join(process.cwd(), 'data');
+console.log('DATA_DIR resolved to:', DATA_DIR);
 
 export interface RaceWinner {
   driver: string;
@@ -199,17 +204,21 @@ export async function saveRaceData(raceData: RaceData, raceNumberOverride?: numb
     track: raceData.metadata.track
   });
   
-  // Ensure data directory exists
+  // Ensure data directory exists and get runtime path
   console.log('Ensuring data directory exists...');
   await ensureDataDirectory();
   
+  // Use the runtime data directory that was verified to work
+  const runtimeDataDir = (global as any).RUNTIME_DATA_DIR || DATA_DIR;
+  console.log('Using runtime data directory:', runtimeDataDir);
+  
   const series = raceData.metadata.series.toLowerCase().replace(/\s+/g, '-');
   const season = raceData.metadata.season.toLowerCase().replace(/\s+/g, '-');
-  const seriesDir = path.join(DATA_DIR, series);
+  const seriesDir = path.join(runtimeDataDir, series);
   const seasonFile = path.join(seriesDir, `${season}.json`);
   
   console.log('Paths:', {
-    DATA_DIR,
+    runtimeDataDir,
     series,
     season,
     seriesDir,
@@ -740,12 +749,50 @@ export async function getAllAvailableSeasons(): Promise<{ series: string; season
 }
 
 async function ensureDataDirectory(): Promise<void> {
-  console.log('Ensuring DATA_DIR exists:', DATA_DIR);
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    console.log('DATA_DIR created/verified successfully');
-  } catch (error) {
-    console.error('Failed to create DATA_DIR:', error);
-    throw new Error(`Failed to create data directory ${DATA_DIR}: ${error}`);
+  console.log('=== ensureDataDirectory called ===');
+  console.log('Environment check:', {
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL: process.env.VERCEL,
+    platform: process.platform,
+    cwd: process.cwd()
+  });
+  
+  // Try multiple potential data directory locations
+  const possibleDataDirs = [
+    path.join(process.cwd(), 'data'), // Normal case
+    path.resolve('./data'), // Relative to current directory
+    path.join(__dirname, '../../../data'), // Relative to this file
+    '/tmp/data' // Fallback for serverless environments
+  ];
+  
+  console.log('Possible data directories:', possibleDataDirs);
+  
+  let dataDir: string | null = null;
+  
+  for (const dir of possibleDataDirs) {
+    try {
+      console.log(`Trying to create/access: ${dir}`);
+      await fs.mkdir(dir, { recursive: true });
+      
+      // Test if we can write to this directory
+      const testFile = path.join(dir, '.test');
+      await fs.writeFile(testFile, 'test');
+      await fs.unlink(testFile);
+      
+      console.log(`Successfully verified directory: ${dir}`);
+      dataDir = dir;
+      break;
+    } catch (error) {
+      console.log(`Failed to use directory ${dir}:`, error);
+      continue;
+    }
   }
+  
+  if (!dataDir) {
+    throw new Error('Could not create or access any data directory. Tried: ' + possibleDataDirs.join(', '));
+  }
+  
+  // Update the global DATA_DIR
+  console.log(`Using data directory: ${dataDir}`);
+  (global as any).RUNTIME_DATA_DIR = dataDir;
 }
