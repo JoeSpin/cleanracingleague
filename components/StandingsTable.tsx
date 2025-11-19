@@ -274,6 +274,21 @@ export default function StandingsTable({ league }: StandingsTableProps) {
               }
             });
             
+            // Sort playoff drivers: ADV first, then by current position
+            playoff.sort((a, b) => {
+              // Advanced drivers always go to the top
+              if (a.playoffStatus === 'ADV' && b.playoffStatus !== 'ADV') return -1;
+              if (a.playoffStatus !== 'ADV' && b.playoffStatus === 'ADV') return 1;
+              
+              // If both are ADV or both are not ADV, maintain current order (by position/points)
+              return a.position - b.position;
+            });
+            
+            // Update positions after sorting
+            playoff.forEach((driver, index) => {
+              driver.position = index + 1;
+            });
+            
             // Limit to appropriate number based on playoff round
             const roundDisplayCount = roundConfig.displayCount;
             playoff = playoff.slice(0, roundDisplayCount);
