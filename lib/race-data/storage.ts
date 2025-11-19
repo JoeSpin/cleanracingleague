@@ -195,13 +195,17 @@ export async function savePlayoffStandingsData(playoffData: PlayoffStandingsData
       const playoffPointsFromCSV = playoffStanding.playoffPoints || playoffStanding.points;
       
       // Calculate season playoff bonus points using configuration
-      const { bonusPoints } = PLAYOFF_CONFIG;
-      const playoffBonusPoints = (driver.wins * bonusPoints.winPoints) + ((driver.stageWins || 0) * bonusPoints.stageWinPoints);
+      // Only apply bonus points for Truck series, not ARCA
+      let playoffBonusPoints = 0;
+      if (playoffData.metadata.series === 'Truck') {
+        const { bonusPoints } = PLAYOFF_CONFIG;
+        playoffBonusPoints = (driver.wins * bonusPoints.winPoints) + ((driver.stageWins || 0) * bonusPoints.stageWinPoints);
+      }
       
       // ADD playoff points to existing season total (don't replace)
       const newTotalPoints = driver.totalPoints + playoffPointsFromCSV + playoffBonusPoints;
       
-      console.log(`${driver.driver}: Season=${driver.totalPoints}, CSV Playoff=${playoffPointsFromCSV}, Bonus=${playoffBonusPoints} (${driver.wins} wins × ${bonusPoints.winPoints} + ${driver.stageWins || 0} stage wins × ${bonusPoints.stageWinPoints}), New Total=${newTotalPoints}`);
+      console.log(`${driver.driver}: Season=${driver.totalPoints}, CSV Playoff=${playoffPointsFromCSV}, Bonus=${playoffBonusPoints} (series: ${playoffData.metadata.series}), New Total=${newTotalPoints}`);
       
       return {
         ...driver,
@@ -897,6 +901,7 @@ export async function getSeasonSummary(series: string, season: string): Promise<
         // Update standings by ADDING playoff points to existing totals
         if (seasonDataAny.playoffStandings && Array.isArray(seasonDataAny.playoffStandings)) {
           console.log('Adding playoff points to calculated standings');
+          console.log('Series:', seasonData.series, '- Will apply bonus points:', seasonData.series === 'Truck');
           
           // Create a map of playoff points by driver
           const playoffPointsMap = new Map<string, number>();
@@ -910,13 +915,17 @@ export async function getSeasonSummary(series: string, season: string): Promise<
             const playoffPointsFromCSV = playoffPointsMap.get(driver.driver) || 0;
             
             // Calculate season playoff bonus points using configuration (same as local version)
-            const { bonusPoints } = PLAYOFF_CONFIG;
-            const playoffBonusPoints = (driver.wins * bonusPoints.winPoints) + ((driver.stageWins || 0) * bonusPoints.stageWinPoints);
+            // Only apply bonus points for Truck series, not ARCA
+            let playoffBonusPoints = 0;
+            if (seasonData.series === 'Truck') {
+              const { bonusPoints } = PLAYOFF_CONFIG;
+              playoffBonusPoints = (driver.wins * bonusPoints.winPoints) + ((driver.stageWins || 0) * bonusPoints.stageWinPoints);
+            }
             
             // ADD playoff points to existing season total (don't replace)
             const newTotalPoints = driver.totalPoints + playoffPointsFromCSV + playoffBonusPoints;
             
-            console.log(`${driver.driver}: Season=${driver.totalPoints}, CSV Playoff=${playoffPointsFromCSV}, Bonus=${playoffBonusPoints} (${driver.wins} wins × ${bonusPoints.winPoints} + ${driver.stageWins || 0} stage wins × ${bonusPoints.stageWinPoints}), New Total=${newTotalPoints}`);
+            console.log(`${driver.driver}: Season=${driver.totalPoints}, CSV Playoff=${playoffPointsFromCSV}, Bonus=${playoffBonusPoints} (series: ${seasonData.series}), New Total=${newTotalPoints}`);
             
             return {
               ...driver,
