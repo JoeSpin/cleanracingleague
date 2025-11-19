@@ -59,6 +59,10 @@ export interface SeasonSummary {
   currentRace: number; // Current race number
   isPlayoffSeason: boolean; // Whether playoffs have started
   currentPlayoffRound: 'regular' | 'round1' | 'round2' | 'championship'; // Current playoff round
+  playoffMetadata?: { 
+    roundWinners?: string[];
+    playoffRound?: string;
+  }; // Playoff metadata including round winners
   seasonStats: {
     totalDrivers: number;
     averageLapsPerRace: number;
@@ -885,6 +889,10 @@ export async function getSeasonSummary(series: string, season: string): Promise<
         // Apply playoff data to the summary
         summary.isPlayoffSeason = true;
         summary.currentPlayoffRound = getPlayoffRoundFromName(seasonDataAny.playoffMetadata.playoffRound);
+        summary.playoffMetadata = {
+          roundWinners: seasonDataAny.playoffMetadata.roundWinners || [],
+          playoffRound: seasonDataAny.playoffMetadata.playoffRound
+        };
         
         // Update standings by ADDING playoff points to existing totals
         if (seasonDataAny.playoffStandings && Array.isArray(seasonDataAny.playoffStandings)) {

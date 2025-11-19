@@ -55,6 +55,10 @@ interface StandingsResponse {
   currentPlayoffRound?: string // Current playoff round
   lastUpdated: string
   error?: string // Error message if any
+  playoffMetadata?: {
+    roundWinners?: string[]
+    playoffRound?: string
+  } // Playoff metadata including round winners
 }
 
 export default function StandingsTable({ league }: StandingsTableProps) {
@@ -203,6 +207,11 @@ export default function StandingsTable({ league }: StandingsTableProps) {
         setCurrentRace(raceNumber)
         setCurrentPlayoffRound(data.currentPlayoffRound || 'regular')
         
+        // Debug playoff metadata
+        if (data.playoffMetadata) {
+          console.log('Playoff metadata received:', data.playoffMetadata);
+        }
+        
         // Handle playoff standings for trucks league
         if (league === 'trucks' && mappedDrivers.length > 0) {
           let playoff: PlayoffDriver[];
@@ -250,7 +259,8 @@ export default function StandingsTable({ league }: StandingsTableProps) {
             playoff = playoff.slice(0, roundDisplayCount);
           } else {
             // Calculate playoff standings from regular season data
-            const roundWinners: string[] = [] // Should be populated from playoff standings metadata
+            const roundWinners = data.playoffMetadata?.roundWinners || [];
+            console.log('Using round winners from API:', roundWinners);
             playoff = calculatePlayoffStandings(mappedDrivers, raceNumber, roundWinners);
           }
           

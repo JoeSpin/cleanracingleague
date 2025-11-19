@@ -38,6 +38,12 @@ export function calculatePlayoffStandings(
   raceNumber: number = PLAYOFF_CONFIG.currentRace,
   currentRoundWinners: string[] = []
 ): PlayoffDriver[] {
+  console.log('calculatePlayoffStandings called with:', {
+    driverCount: drivers.length,
+    raceNumber,
+    currentRoundWinners
+  });
+  
   const currentRound = getCurrentPlayoffRound(raceNumber);
   const roundConfig = PLAYOFF_CONFIG.rounds[currentRound];
   
@@ -76,6 +82,7 @@ export function calculatePlayoffStandings(
     } else if (isWinner) {
       playoffStatus = 'ADV';
       playoffPoints = 'ADV';
+      console.log(`Driver ${driver.name} marked as ADV (round winner)`);
     } else if (isAboveCutoff) {
       playoffStatus = 'IN';
       // Calculate points above the cutoff line (position after cutoff)

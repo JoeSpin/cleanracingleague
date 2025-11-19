@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
       currentRace: seasonSummary.currentRace,
       isPlayoffSeason: seasonSummary.isPlayoffSeason,
       currentPlayoffRound: seasonSummary.currentPlayoffRound,
-      lastUpdated: seasonSummary.lastUpdated
+      lastUpdated: seasonSummary.lastUpdated,
+      playoffMetadata: seasonSummary.playoffMetadata || null
     });
     
   } catch (error) {
