@@ -230,27 +230,47 @@ export default function StandingsTable({ league }: StandingsTableProps) {
             const roundConfig = PLAYOFF_CONFIG.rounds[data.currentPlayoffRound as keyof typeof PLAYOFF_CONFIG.rounds];
             const cutoffPosition = roundConfig.cutoff;
             
+            // Get round winners from playoff metadata
+            const roundWinners = data.playoffMetadata?.roundWinners || [];
+            console.log('Round winners from playoff metadata:', roundWinners);
+            
             // Get the points of the driver at the cutoff line (last driver to advance)
             const cutoffDriverPoints = playoff[cutoffPosition - 1]?.points || 0;
             
-            // Update playoff status and points based on points differential from cutoff
+            // Update playoff status and points based on round winners and points differential from cutoff
             playoff.forEach((driver, index) => {
-              const pointsDiff = driver.points - cutoffDriverPoints;
+              // Check if driver is a round winner (use same matching logic as playoff-logic.ts)
+              const isRoundWinner = roundWinners.some(winner => 
+                winner === driver.name || 
+                winner.toLowerCase().trim() === driver.name.toLowerCase().trim()
+              );
               
-              if (index < cutoffPosition) {
+              console.log(`Driver: "${driver.name}", Is Round Winner: ${isRoundWinner}`);
+              
+              if (isRoundWinner) {
+                // Round winners automatically advance regardless of position
                 driver.isAboveCutoff = true;
-                driver.playoffStatus = 'IN';
-                if (index === 0) {
-                  driver.playoffPoints = 'LEADER';
-                } else if (pointsDiff > 0) {
-                  driver.playoffPoints = `+${pointsDiff}`;
-                } else {
-                  driver.playoffPoints = '0';
-                }
+                driver.playoffStatus = 'ADV';
+                driver.playoffPoints = 'ADV';
+                console.log(`Driver ${driver.name} marked as ADV (round winner)`);
               } else {
-                driver.isAboveCutoff = false;
-                driver.playoffStatus = 'OUT';
-                driver.playoffPoints = pointsDiff < 0 ? `${pointsDiff}` : '0';
+                const pointsDiff = driver.points - cutoffDriverPoints;
+                
+                if (index < cutoffPosition) {
+                  driver.isAboveCutoff = true;
+                  driver.playoffStatus = 'IN';
+                  if (index === 0) {
+                    driver.playoffPoints = 'LEADER';
+                  } else if (pointsDiff > 0) {
+                    driver.playoffPoints = `+${pointsDiff}`;
+                  } else {
+                    driver.playoffPoints = '0';
+                  }
+                } else {
+                  driver.isAboveCutoff = false;
+                  driver.playoffStatus = 'OUT';
+                  driver.playoffPoints = pointsDiff < 0 ? `${pointsDiff}` : '0';
+                }
               }
             });
             
