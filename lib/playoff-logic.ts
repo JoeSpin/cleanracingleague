@@ -52,10 +52,25 @@ export function calculatePlayoffStandings(
   
   const winners = getCurrentRoundWinners(eligibleDrivers, raceNumber, currentRoundWinners);
   
+  console.log('Playoff calculation debug:', {
+    currentRound,
+    eligibleDriverCount: eligibleDrivers.length,
+    roundWinners: currentRoundWinners,
+    processedWinners: winners,
+    driverNames: eligibleDrivers.slice(0, 5).map(d => d.name) // First 5 driver names for comparison
+  });
+  
   // Sort drivers: winners first (by wins desc), then by points desc
   const sortedDrivers = [...eligibleDrivers].sort((a, b) => {
-    const aIsWinner = winners.includes(a.name);
-    const bIsWinner = winners.includes(b.name);
+    // Use improved name matching for sorting as well
+    const aIsWinner = winners.some(winner => 
+      winner === a.name || 
+      winner.toLowerCase().trim() === a.name.toLowerCase().trim()
+    );
+    const bIsWinner = winners.some(winner => 
+      winner === b.name || 
+      winner.toLowerCase().trim() === b.name.toLowerCase().trim()
+    );
     
     if (aIsWinner && !bIsWinner) return -1;
     if (!aIsWinner && bIsWinner) return 1;
@@ -69,8 +84,16 @@ export function calculatePlayoffStandings(
   // Calculate playoff standings
   const playoffDrivers: PlayoffDriver[] = displayDrivers.map((driver, index) => {
     const position = index + 1;
-    const isWinner = winners.includes(driver.name);
+    // Check both exact match and case-insensitive match for round winners
+    const isWinner = winners.some(winner => 
+      winner === driver.name || 
+      winner.toLowerCase().trim() === driver.name.toLowerCase().trim()
+    );
     const isAboveCutoff = position <= roundConfig.cutoff;
+    
+    if (winners.length > 0) {
+      console.log(`Driver: "${driver.name}", Is Winner: ${isWinner}, Winners List: [${winners.join(', ')}]`);
+    }
     
     let playoffStatus: 'ADV' | 'IN' | 'OUT';
     let playoffPoints: string;
