@@ -1,10 +1,10 @@
-/* Home page styles */
+/* Home page styles - Modern redesign */
 .container {
   position: relative;
   min-height: 100vh;
-  min-height: 100svh; /* Use small viewport height for better mobile support */
   width: 100%;
   overflow-x: hidden;
+  background: #0a0a0a;
 }
 
 .background {
@@ -21,9 +21,9 @@
   background-size: cover;
   background-attachment: fixed;
   z-index: 1;
+  filter: brightness(0.4);
 }
 
-/* Fix background attachment on mobile */
 @media (max-width: 768px) {
   .background {
     background-attachment: scroll;
@@ -36,7 +36,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.5) 100%);
   z-index: 2;
 }
 
@@ -44,151 +44,251 @@
   position: relative;
   z-index: 3;
   min-height: 100vh;
-  min-height: 100svh;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  box-sizing: border-box;
+  padding: 40px 20px;
+  gap: 60px;
 }
 
-.mainLogo {
-  position: relative;
-  width: clamp(200px, 40vw, 480px);
-  height: clamp(200px, 40vw, 480px);
+/* Hero Section */
+.hero {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  margin-bottom: clamp(20px, 5vh, 40px);
-  background: transparent;
-  padding: 0;
-  box-sizing: border-box;
+  gap: 20px;
+  text-align: center;
+  animation: fadeInUp 0.8s ease-out;
 }
 
-.cardRow {
-  display: flex;
-  gap: clamp(16px, 3vw, 32px);
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: stretch;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logoWrapper {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  filter: drop-shadow(0 0 40px rgba(212, 175, 55, 0.3));
+  transition: transform 0.3s ease;
+}
+
+.logoWrapper:hover {
+  transform: scale(1.05);
+}
+
+.title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  color: var(--crl-gold);
+  margin: 0;
+  text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: #ccc;
+  margin: 0;
+  font-weight: 300;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* Series Grid */
+.seriesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 450px));
+  gap: 40px;
   width: 100%;
   max-width: 1200px;
-}
-
-.logoCard {
-  width: clamp(180px, 25vw, 280px);
-  height: clamp(180px, 25vw, 280px);
-  padding: 12px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.seriesCard {
+  position: relative;
+  background: rgba(20, 20, 20, 0.8);
+  border-radius: 20px;
+  border: 2px solid rgba(212, 175, 55, 0.2);
+  overflow: hidden;
   text-decoration: none;
-  color: inherit;
-  box-sizing: border-box;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
 }
 
-.logoCard:hover {
-  transform: translateY(-8px) scale(1.05);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+.seriesCard:hover {
+  transform: translateY(-8px);
+  border-color: var(--crl-gold);
+  box-shadow: 0 20px 60px rgba(212, 175, 55, 0.3);
 }
 
-.logoPlaceholder {
+.seriesCard:hover .cardGlow {
+  opacity: 1;
+}
+
+.cardGlow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.cardContent {
+  position: relative;
+  padding: 40px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  z-index: 1;
+}
+
+.seriesLogo {
   position: relative;
   width: 100%;
-  height: 100%;
-  background: #ccc;
-  border-radius: 12px;
-  display: flex;
+  height: 180px;
+  transition: transform 0.4s ease;
+}
+
+.seriesCard:hover .seriesLogo {
+  transform: scale(1.05);
+}
+
+.cardInfo {
+  text-align: center;
+  color: #fff;
+}
+
+.cardInfo h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--crl-gold);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cardInfo p {
+  font-size: 1rem;
+  color: #999;
+  margin: 0 0 16px 0;
+  font-weight: 300;
+}
+
+.viewButton {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  color: #333;
-  overflow: hidden;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--crl-gold) 0%, #c9a842 100%);
+  color: #000;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Tablet and small desktop */
+.seriesCard:hover .viewButton {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+}
+
+/* Tablet */
 @media (max-width: 1024px) {
-  .mainLogo {
-    width: clamp(180px, 35vw, 400px);
-    height: clamp(180px, 35vw, 400px);
+  .content {
+    gap: 50px;
+    padding: 30px 20px;
   }
-  
-  .cardRow {
-    gap: clamp(12px, 2.5vw, 24px);
+
+  .logoWrapper {
+    width: 220px;
+    height: 220px;
   }
-  
-  .logoCard {
-    width: clamp(160px, 28vw, 240px);
-    height: clamp(160px, 28vw, 240px);
+
+  .seriesGrid {
+    gap: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
   }
 }
 
-/* Mobile landscape and small tablets */
+/* Mobile */
 @media (max-width: 768px) {
   .content {
-    padding: 16px;
-    gap: 16px;
+    gap: 40px;
+    padding: 30px 16px;
   }
-  
-  .mainLogo {
-    width: clamp(150px, 30vw, 300px);
-    height: clamp(150px, 30vw, 300px);
-    margin-bottom: 20px;
+
+  .logoWrapper {
+    width: 180px;
+    height: 180px;
   }
-  
-  .cardRow {
-    gap: 16px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
+
+  .title {
+    font-size: 2rem;
   }
-  
-  .logoCard {
-    width: clamp(140px, 40vw, 200px);
-    height: clamp(140px, 40vw, 200px);
-    padding: 8px;
+
+  .subtitle {
+    font-size: 0.9rem;
+  }
+
+  .seriesGrid {
+    gap: 24px;
+    grid-template-columns: 1fr;
+    max-width: 400px;
+  }
+
+  .cardContent {
+    padding: 30px 24px;
+  }
+
+  .seriesLogo {
+    height: 140px;
   }
 }
 
-/* Mobile portrait */
+/* Small mobile */
 @media (max-width: 480px) {
   .content {
-    padding: 12px;
-    justify-content: space-evenly;
-    min-height: 100vh;
-    min-height: 100svh;
+    gap: 30px;
+    padding: 20px 12px;
   }
-  
-  .mainLogo {
-    width: clamp(120px, 50vw, 250px);
-    height: clamp(120px, 50vw, 250px);
-    margin-bottom: 16px;
+
+  .logoWrapper {
+    width: 140px;
+    height: 140px;
   }
-  
-  .cardRow {
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    align-items: center;
-    justify-content: center;
+
+  .seriesGrid {
+    max-width: 100%;
   }
-  
-  .logoCard {
-    width: clamp(200px, 80vw, 300px);
-    height: clamp(120px, 20vw, 160px);
-    padding: 8px;
-    margin: 0 auto;
+
+  .cardContent {
+    padding: 24px 20px;
   }
-  
-  .logoCard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+
+  .seriesLogo {
+    height: 120px;
+  }
+
+  .cardInfo h2 {
+    font-size: 1.5rem;
   }
 }
